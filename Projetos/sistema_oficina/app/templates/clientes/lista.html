@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if modo == "selecionar" %}
+Selecionar Cliente
+{% else %}
+Clientes
+{% endif %}
+| Sistema da Oficina
+{% endblock %}
+
+{% block page_title %}
+{% if modo == "selecionar" %}
+Selecionar Cliente
+{% else %}
+Clientes
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1 class="page-title">
+            {% if modo == "selecionar" %}
+                Selecionar cliente
+            {% else %}
+                Clientes
+            {% endif %}
+        </h1>
+
+        <p class="page-description">
+            {% if modo == "selecionar" %}
+                Pesquise e selecione o cliente
+                da ordem de serviço.
+            {% else %}
+                Consulte e gerencie os clientes
+                cadastrados na oficina.
+            {% endif %}
+        </p>
+    </div>
+
+    {% if modo == "selecionar" %}
+
+        <a
+            href="{{ url_for(
+                'ordem_servico_web.cadastrar'
+            ) }}"
+            class="btn btn-outline-secondary"
+        >
+            Voltar para a ordem
+        </a>
+
+    {% else %}
+
+        <a
+            href="{{ url_for(
+                'cliente_web.cadastrar'
+            ) }}"
+            class="btn btn-primary"
+        >
+            + Novo cliente
+        </a>
+
+    {% endif %}
+
+</div>
+
+{% with mensagens = get_flashed_messages(
+    with_categories=true
+) %}
+    {% for categoria, mensagem in mensagens %}
+
+        <div
+            class="alert alert-{{ categoria }}
+                   alert-dismissible fade show"
+            role="alert"
+        >
+            {{ mensagem }}
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fechar"
+            ></button>
+        </div>
+
+    {% endfor %}
+{% endwith %}
+
+<div class="card system-card mb-4">
+
+    <div class="card-body">
+
+        <form
+            method="get"
+            action="{{ url_for(
+                'cliente_web.listar'
+            ) }}"
+        >
+
+            {% if modo == "selecionar" %}
+                <input
+                    type="hidden"
+                    name="modo"
+                    value="selecionar"
+                >
+            {% endif %}
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-lg-9 col-md-8">
+
+                    <label
+                        for="pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar cliente
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Digite nome, telefone ou e-mail"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+                <div class="col-lg-3 col-md-4">
+
+                    <div class="d-flex gap-2">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary flex-grow-1"
+                        >
+                            Pesquisar
+                        </button>
+
+                        {% if pesquisa %}
+
+                            <a
+                                href="{{ url_for(
+                                    'cliente_web.listar',
+                                    modo=modo
+                                ) }}"
+                                class="btn btn-outline-secondary"
+                            >
+                                Limpar
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<div class="card system-card">
+
+    <div class="card-header system-card-header">
+
+        <div>
+            <h2 class="section-title">
+                {% if modo == "selecionar" %}
+                    Clientes disponíveis
+                {% else %}
+                    Clientes cadastrados
+                {% endif %}
+            </h2>
+
+            <p class="section-description">
+                {% if pesquisa %}
+                    Resultado da pesquisa por
+                    “{{ pesquisa }}”.
+                {% else %}
+                    Lista de clientes registrados
+                    na oficina.
+                {% endif %}
+            </p>
+        </div>
+
+        <span class="badge text-bg-secondary">
+            {{ clientes|length }}
+
+            {% if clientes|length == 1 %}
+                cliente
+            {% else %}
+                clientes
+            {% endif %}
+        </span>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if clientes %}
+
+            <div class="table-responsive">
+
+                <table
+                    class="table system-table
+                           align-middle mb-0"
+                >
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>E-mail</th>
+                            <th>Notificação</th>
+                            <th>Status</th>
+                            <th class="text-end">
+                                Ações
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for cliente in clientes %}
+
+                            <tr>
+
+                                <td>
+                                    #{{ cliente.id }}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ cliente.nome }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ cliente.telefone }}
+                                </td>
+
+                                <td>
+                                    {{ cliente.email or "-" }}
+                                </td>
+
+                                <td>
+                                    {% if cliente.recebe_notificacao %}
+                                        <span
+                                            class="badge text-bg-primary"
+                                        >
+                                            Autorizada
+                                        </span>
+                                    {% else %}
+                                        <span
+                                            class="badge text-bg-secondary"
+                                        >
+                                            Não autorizada
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if cliente.ativo %}
+                                        <span
+                                            class="badge text-bg-primary"
+                                        >
+                                            Ativo
+                                        </span>
+                                    {% else %}
+                                        <span
+                                            class="badge text-bg-secondary"
+                                        >
+                                            Inativo
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end">
+
+                                    {% if modo == "selecionar" %}
+
+                                        {% if cliente.ativo %}
+
+                                            <a
+                                                href="{{ url_for(
+                                                    'ordem_servico_web.cadastrar',
+                                                    cliente_id=cliente.id
+                                                ) }}"
+                                                class="btn btn-sm btn-primary"
+                                            >
+                                                Selecionar
+                                            </a>
+
+                                        {% else %}
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm
+                                                       btn-outline-secondary"
+                                                disabled
+                                            >
+                                                Cliente inativo
+                                            </button>
+
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        <a
+                                            href="{{ url_for(
+                                                'cliente_web.detalhes',
+                                                cliente_id=cliente.id
+                                            ) }}"
+                                            class="btn btn-sm
+                                                   btn-outline-primary"
+                                        >
+                                            Detalhes
+                                        </a>
+
+                                        <a
+                                            href="{{ url_for(
+                                                'cliente_web.editar',
+                                                cliente_id=cliente.id
+                                            ) }}"
+                                            class="btn btn-sm
+                                                   btn-outline-primary"
+                                        >
+                                            Editar
+                                        </a>
+
+                                        <form
+                                            method="post"
+                                            action="{{ url_for(
+                                                'cliente_web.excluir',
+                                                cliente_id=cliente.id
+                                            ) }}"
+                                            class="d-inline"
+                                            onsubmit="return confirm(
+                                                'Deseja remover este cliente?'
+                                            );"
+                                        >
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-sm
+                                                       btn-outline-danger"
+                                            >
+                                                Excluir
+                                            </button>
+
+                                        </form>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <h3>
+                    Nenhum cliente encontrado
+                </h3>
+
+                <p>
+                    Verifique o termo pesquisado
+                    ou cadastre um novo cliente.
+                </p>
+
+                {% if modo == "selecionar" %}
+
+                    <a
+                        href="{{ url_for(
+                            'cliente_web.cadastrar'
+                        ) }}"
+                        class="btn btn-primary"
+                    >
+                        Cadastrar cliente
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

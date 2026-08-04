@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if ordem %}
+Editar Ordem de Serviço
+{% else %}
+Nova Ordem de Serviço
+{% endif %}
+| Sistema da Oficina
+{% endblock %}
+
+{% block page_title %}
+{% if ordem %}
+Editar Ordem de Serviço
+{% else %}
+Nova Ordem de Serviço
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1 class="page-title">
+            {% if ordem %}
+                Editar ordem de serviço
+            {% else %}
+                Nova ordem de serviço
+            {% endif %}
+        </h1>
+
+        <p class="page-description">
+            Informe o cliente e os dados do atendimento.
+        </p>
+    </div>
+
+    <a
+        href="{{ url_for('ordem_servico_web.listar') }}"
+        class="btn btn-outline-secondary"
+    >
+        Voltar
+    </a>
+
+</div>
+
+{% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in mensagens %}
+
+        <div
+            class="alert alert-{{ categoria }} alert-dismissible fade show"
+            role="alert"
+        >
+            {{ mensagem }}
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fechar"
+            ></button>
+        </div>
+
+    {% endfor %}
+{% endwith %}
+
+<form method="post">
+
+    <div class="card system-card mb-4">
+
+        <div class="card-header system-card-header">
+
+            <div>
+                <h2 class="section-title">
+                    Cliente
+                </h2>
+
+                <p class="section-description">
+                    O cliente é obrigatório para cadastrar a ordem.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for(
+                    'cliente_web.listar',
+                    modo='selecionar'
+                ) }}"
+                class="btn btn-sm btn-outline-primary"
+            >
+                {% if cliente_selecionado %}
+                    Trocar cliente
+                {% else %}
+                    Selecionar cliente
+                {% endif %}
+            </a>
+
+        </div>
+
+        <div class="card-body">
+
+            {% if cliente_selecionado %}
+
+                <input
+                    type="hidden"
+                    name="cliente_id"
+                    value="{{ cliente_selecionado.id }}"
+                >
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+
+                        <span class="text-muted small">
+                            Nome
+                        </span>
+
+                        <p class="mb-0 fw-semibold">
+                            {{ cliente_selecionado.nome }}
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <span class="text-muted small">
+                            Telefone
+                        </span>
+
+                        <p class="mb-0">
+                            {{ cliente_selecionado.telefone }}
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <span class="text-muted small">
+                            E-mail
+                        </span>
+
+                        <p class="mb-0">
+                            {{ cliente_selecionado.email or "-" }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <input
+                    type="hidden"
+                    name="cliente_id"
+                    value=""
+                >
+
+                <div class="empty-state py-4">
+
+                    <h3>
+                        Nenhum cliente selecionado
+                    </h3>
+
+                    <p>
+                        Clique em “Selecionar cliente”
+                        para localizar o cliente da ordem.
+                    </p>
+
+                    <a
+                        href="{{ url_for(
+                            'cliente_web.listar',
+                            modo='selecionar'
+                        ) }}"
+                        class="btn btn-primary"
+                    >
+                        Selecionar cliente
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <div class="card system-card mb-4">
+
+        <div class="card-header system-card-header">
+
+            <div>
+                <h2 class="section-title">
+                    Dados do veículo
+                </h2>
+
+                <p class="section-description">
+                    Informe o veículo atendido nesta ordem.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+
+                    <label
+                        for="placa"
+                        class="form-label"
+                    >
+                        Placa *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="placa"
+                        name="placa"
+                        class="form-control text-uppercase"
+                        value="{{ ordem.placa if ordem else '' }}"
+                        maxlength="10"
+                        placeholder="ABC1D23"
+                        required
+                    >
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <label
+                        for="marca"
+                        class="form-label"
+                    >
+                        Marca *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="marca"
+                        name="marca"
+                        class="form-control"
+                        value="{{ ordem.marca if ordem else '' }}"
+                        maxlength="50"
+                        placeholder="Volkswagen"
+                        required
+                    >
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <label
+                        for="modelo"
+                        class="form-label"
+                    >
+                        Modelo *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="modelo"
+                        name="modelo"
+                        class="form-control"
+                        value="{{ ordem.modelo if ordem else '' }}"
+                        maxlength="80"
+                        placeholder="Gol"
+                        required
+                    >
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <label
+                        for="ano"
+                        class="form-label"
+                    >
+                        Ano
+                    </label>
+
+                    <input
+                        type="number"
+                        id="ano"
+                        name="ano"
+                        class="form-control"
+                        value="{{ ordem.ano if ordem and ordem.ano else '' }}"
+                        min="1900"
+                        max="2100"
+                        placeholder="2018"
+                    >
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label
+                        for="quilometragem"
+                        class="form-label"
+                    >
+                        Quilometragem atual *
+                    </label>
+
+                    <input
+                        type="number"
+                        id="quilometragem"
+                        name="quilometragem"
+                        class="form-control"
+                        value="{{ ordem.quilometragem if ordem else '' }}"
+                        min="0"
+                        placeholder="85000"
+                        required
+                    >
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Data do serviço
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="{{ data_servico.strftime('%d/%m/%Y') }}"
+                        readonly
+                    >
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Próxima troca por data
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="{{ proxima_troca_data.strftime('%d/%m/%Y') }}"
+                        readonly
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card system-card mb-4">
+
+        <div class="card-header system-card-header">
+
+            <div>
+                <h2 class="section-title">
+                    Serviço realizado
+                </h2>
+
+                <p class="section-description">
+                    Informe os detalhes do atendimento.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="mb-3">
+
+                <label
+                    for="descricao_servico"
+                    class="form-label"
+                >
+                    Descrição do serviço *
+                </label>
+
+                <input
+                    type="text"
+                    id="descricao_servico"
+                    name="descricao_servico"
+                    class="form-control"
+                    value="{{ ordem.descricao_servico if ordem else '' }}"
+                    maxlength="150"
+                    placeholder="Exemplo: troca de óleo e filtro"
+                    required
+                >
+
+            </div>
+
+            <div class="row g-3">
+
+                <div class="col-md-8">
+
+                    <label
+                        for="tipo_oleo"
+                        class="form-label"
+                    >
+                        Tipo de óleo
+                    </label>
+
+                    <input
+                        type="text"
+                        id="tipo_oleo"
+                        name="tipo_oleo"
+                        class="form-control"
+                        value="{{ ordem.tipo_oleo if ordem and ordem.tipo_oleo else '' }}"
+                        maxlength="100"
+                        placeholder="Exemplo: 5W30 Sintético"
+                    >
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label
+                        for="quantidade_litros"
+                        class="form-label"
+                    >
+                        Quantidade de litros
+                    </label>
+
+                    <input
+                        type="number"
+                        id="quantidade_litros"
+                        name="quantidade_litros"
+                        class="form-control"
+                        value="{{ ordem.quantidade_litros if ordem and ordem.quantidade_litros is not none else '' }}"
+                        min="0"
+                        step="0.1"
+                        placeholder="4.5"
+                    >
+
+                </div>
+
+            </div>
+
+            <div class="row g-3 mt-1">
+
+                <div class="col-md-4">
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="filtro_oleo"
+                            name="filtro_oleo"
+                            class="form-check-input"
+                            {% if ordem and ordem.filtro_oleo %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="filtro_oleo"
+                            class="form-check-label"
+                        >
+                            Filtro de óleo substituído
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="filtro_ar"
+                            name="filtro_ar"
+                            class="form-check-input"
+                            {% if ordem and ordem.filtro_ar %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="filtro_ar"
+                            class="form-check-label"
+                        >
+                            Filtro de ar substituído
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="filtro_combustivel"
+                            name="filtro_combustivel"
+                            class="form-check-input"
+                            {% if ordem and ordem.filtro_combustivel %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="filtro_combustivel"
+                            class="form-check-label"
+                        >
+                            Filtro de combustível substituído
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card system-card mb-4">
+
+        <div class="card-header system-card-header">
+
+            <div>
+                <h2 class="section-title">
+                    Informações complementares
+                </h2>
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-5">
+
+                    <label
+                        for="proxima_troca_km"
+                        class="form-label"
+                    >
+                        Próxima troca em quilômetros
+                    </label>
+
+                    <input
+                        type="number"
+                        id="proxima_troca_km"
+                        name="proxima_troca_km"
+                        class="form-control"
+                        value="{{ ordem.proxima_troca_km if ordem and ordem.proxima_troca_km else '' }}"
+                        min="0"
+                        placeholder="Exemplo: 90000"
+                    >
+
+                </div>
+
+                <div class="col-md-7">
+
+                    <label
+                        for="observacoes"
+                        class="form-label"
+                    >
+                        Observações
+                    </label>
+
+                    <textarea
+                        id="observacoes"
+                        name="observacoes"
+                        class="form-control"
+                        rows="4"
+                        placeholder="Informações adicionais sobre o atendimento"
+                    >{{ ordem.observacoes if ordem and ordem.observacoes else '' }}</textarea>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+
+        <a
+            href="{{ url_for('ordem_servico_web.listar') }}"
+            class="btn btn-outline-secondary"
+        >
+            Cancelar
+        </a>
+
+        <button
+            type="submit"
+            class="btn btn-primary"
+        >
+            {% if ordem %}
+                Salvar alterações
+            {% else %}
+                Cadastrar ordem
+            {% endif %}
+        </button>
+
+    </div>
+
+</form>
+
+{% endblock %}

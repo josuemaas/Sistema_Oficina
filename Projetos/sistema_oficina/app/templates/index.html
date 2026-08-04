@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}
+Dashboard | Sistema da Oficina
+{% endblock %}
+
+{% block page_title %}
+Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            Visão geral
+        </h1>
+
+        <p class="page-description">
+            Acompanhe os principais registros da oficina.
+        </p>
+    </div>
+
+    <a
+        href="{{ url_for('ordem_servico_web.cadastrar') }}"
+        class="btn btn-primary"
+    >
+        Nova ordem de serviço
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Clientes ativos
+            </p>
+
+            <h2 class="summary-value">
+                {{ resumo.total_clientes }}
+            </h2>
+
+            <a
+                href="{{ url_for('cliente_web.listar') }}"
+                class="summary-link"
+            >
+                Consultar clientes
+            </a>
+
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Ordens de serviço
+            </p>
+
+            <h2 class="summary-value">
+                {{ resumo.total_ordens }}
+            </h2>
+
+            <a
+                href="{{ url_for('ordem_servico_web.listar') }}"
+                class="summary-link"
+            >
+                Consultar ordens
+            </a>
+
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Próximas trocas
+            </p>
+
+            <h2 class="summary-value">
+                {{ resumo.proximas_trocas }}
+            </h2>
+
+            <a
+                href="{{ url_for('ordem_servico_web.listar') }}"
+                class="summary-link"
+            >
+                Consultar previsões
+            </a>
+
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Notificações disponíveis
+            </p>
+
+            <h2 class="summary-value">
+                {{ resumo.notificacoes_disponiveis }}
+            </h2>
+
+            <a
+                href="{{ url_for('notificacao_web.listar') }}"
+                class="summary-link"
+            >
+                Consultar notificações
+            </a>
+
+        </div>
+    </div>
+
+</div>
+
+<div class="card system-card">
+
+    <div class="card-header system-card-header">
+        <div>
+            <h2 class="section-title">
+                Últimas ordens de serviço
+            </h2>
+
+            <p class="section-description">
+                Atendimentos registrados recentemente.
+            </p>
+        </div>
+
+        <a
+            href="{{ url_for('ordem_servico_web.listar') }}"
+            class="btn btn-sm btn-outline-primary"
+        >
+            Ver todas
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        {% if ultimas_ordens %}
+
+            <div class="table-responsive">
+
+                <table class="table system-table align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Veículo</th>
+                            <th>Data</th>
+                            <th>Quilometragem</th>
+                            <th>Serviço</th>
+                            <th>Próxima troca</th>
+                            <th class="text-end">
+                                Ações
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for ordem in ultimas_ordens %}
+
+                            <tr>
+
+                                <td>
+                                    #{{ ordem.id }}
+                                </td>
+
+                                <td>
+                                    {% if ordem.cliente %}
+                                        <strong>
+                                            {{ ordem.cliente.nome }}
+                                        </strong>
+
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.cliente.telefone }}
+                                        </small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ ordem.marca or "-" }}
+                                        {{ ordem.modelo or "" }}
+                                    </strong>
+
+                                    <br>
+
+                                    <small class="text-muted">
+                                        {{ ordem.placa or "-" }}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    {{ ordem.data_servico.strftime(
+                                        "%d/%m/%Y"
+                                    ) }}
+                                </td>
+
+                                <td>
+                                    {{ ordem.quilometragem }} km
+                                </td>
+
+                                <td>
+                                    {{ ordem.descricao_servico }}
+                                </td>
+
+                                <td>
+                                    {% if ordem.proxima_troca_km %}
+                                        {{ ordem.proxima_troca_km }} km
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                    {% if ordem.proxima_troca_data %}
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.proxima_troca_data.strftime(
+                                                "%d/%m/%Y"
+                                            ) }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end">
+                                    <a
+                                        href="{{ url_for(
+                                            'ordem_servico_web.editar',
+                                            ordem_id=ordem.id
+                                        ) }}"
+                                        class="btn btn-sm btn-outline-primary"
+                                    >
+                                        Editar
+                                    </a>
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <h3>
+                    Nenhuma ordem cadastrada
+                </h3>
+
+                <p>
+                    Cadastre a primeira ordem de serviço
+                    para iniciar o histórico da oficina.
+                </p>
+
+                <a
+                    href="{{ url_for(
+                        'ordem_servico_web.cadastrar'
+                    ) }}"
+                    class="btn btn-primary"
+                >
+                    Cadastrar ordem
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
