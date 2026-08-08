@@ -1,0 +1,285 @@
+:root {
+    --color-primary: #0f3b5b;
+    --color-primary-dark: #0b2b43;
+    --color-primary-light: #eaf3fb;
+
+    --color-background: #f3f6f9;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f7f9fc;
+
+    --color-text: #142331;
+    --color-text-muted: #5f6c7a;
+    --color-text-light: #8a94a0;
+
+    --color-border: #dfe5eb;
+    --color-border-strong: #c8d0da;
+
+    --color-success: #1c6f4b;
+    --color-success-background: #ebf8f1;
+
+    --color-warning: #9b6b16;
+    --color-warning-background: #fff7e8;
+
+    --color-danger: #b64848;
+    --color-danger-background: #fceaea;
+
+    --color-info: #2f5e8a;
+    --color-info-background: #edf5fb;
+
+    --shadow-soft: 0 10px 26px rgba(11, 43, 67, 0.08);
+    --shadow-medium: 0 16px 36px rgba(11, 43, 67, 0.12);
+
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 16px;
+
+    --sidebar-width: 260px;
+
+    --transition-fast: 180ms ease;
+    --transition-normal: 240ms ease;
+}
+
+
+/* =========================================================
+   RESET E CONFIGURAÇÕES GERAIS
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+
+    background: linear-gradient(180deg, #f6f8fb 0%, #f1f5f8 100%);
+    color: var(--color-text);
+
+    font-family:
+        "Segoe UI",
+        Inter,
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+
+    font-size: 0.94rem;
+    line-height: 1.5;
+
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+
+    transition:
+        color var(--transition-fast),
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--color-primary-dark);
+}
+
+p {
+    margin-top: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin-top: 0;
+
+    color: var(--color-text);
+
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+hr {
+    margin: 1.5rem 0;
+
+    border: 0;
+    border-top: 1px solid var(--color-border);
+
+    opacity: 1;
+}
+
+ul,
+ol {
+    margin-top: 0;
+}
+
+
+/* =========================================================
+   ACESSIBILIDADE
+   ========================================================= */
+
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+::selection {
+    background-color: var(--color-primary);
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   UTILITÁRIOS DE TEXTO
+   ========================================================= */
+
+.text-muted {
+    color: var(--color-text-muted) !important;
+}
+
+.text-light-muted {
+    color: var(--color-text-light) !important;
+}
+
+.text-primary {
+    color: var(--color-primary) !important;
+}
+
+.text-success {
+    color: var(--color-success) !important;
+}
+
+.text-warning {
+    color: var(--color-warning) !important;
+}
+
+.text-danger {
+    color: var(--color-danger) !important;
+}
+
+.fw-medium {
+    font-weight: 500 !important;
+}
+
+.fw-semibold {
+    font-weight: 600 !important;
+}
+
+.small {
+    font-size: 0.82rem !important;
+}
+
+
+/* =========================================================
+   SUPERFÍCIES
+   ========================================================= */
+
+.bg-white {
+    background-color: var(--color-surface) !important;
+}
+
+.bg-light {
+    background-color: var(--color-surface-muted) !important;
+}
+
+.border {
+    border-color: var(--color-border) !important;
+}
+
+.shadow-sm {
+    box-shadow: var(--shadow-soft) !important;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color:
+        var(--color-border-strong)
+        transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-light);
+}
+
+
+/* =========================================================
+   IMPRESSÃO
+   ========================================================= */
+
+@media print {
+    body {
+        background-color: #ffffff;
+        color: #000000;
+    }
+
+    .app-sidebar,
+    .app-topbar,
+    .page-heading-actions,
+    .sidebar-toggle {
+        display: none !important;
+    }
+
+    .app-main {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .app-content {
+        padding: 0 !important;
+    }
+
+    a {
+        color: #000000;
+        text-decoration: none;
+    }
+}

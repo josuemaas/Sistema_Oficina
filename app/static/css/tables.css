@@ -1,0 +1,252 @@
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.system-table {
+    width: 100%;
+    margin: 0;
+
+    border-collapse: collapse;
+
+    color: var(--color-text);
+
+    font-size: 0.84rem;
+}
+
+.system-table thead {
+    background-color: var(--color-surface-muted);
+}
+
+.system-table th {
+    padding: 11px 12px;
+
+    border-bottom: 1px solid var(--color-border);
+
+    color: var(--color-text-muted);
+
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: left;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+}
+
+.system-table td {
+    padding: 12px;
+
+    border-bottom: 1px solid var(--color-border);
+
+    vertical-align: middle;
+}
+
+.system-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.system-table tbody tr:hover {
+    background-color: var(--color-surface-muted);
+    box-shadow: inset 0 0 0 1px rgba(15, 59, 91, 0.04);
+}
+
+.system-table .column-id {
+    width: 70px;
+}
+
+.system-table .column-status {
+    width: 110px;
+}
+
+.system-table .column-actions {
+    width: 210px;
+
+    text-align: right;
+}
+
+.table-primary-text {
+    display: block;
+
+    color: var(--color-text);
+
+    font-weight: 500;
+}
+
+.table-secondary-text {
+    display: block;
+
+    margin-top: 2px;
+
+    color: var(--color-text-muted);
+
+    font-size: 0.75rem;
+}
+
+.table-empty {
+    padding: 38px 18px;
+
+    text-align: center;
+}
+
+.table-empty-title {
+    margin-bottom: 6px;
+
+    color: var(--color-primary);
+
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.table-empty-description {
+    margin-bottom: 0;
+
+    color: var(--color-text-muted);
+
+    font-size: 0.82rem;
+}
+
+.table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 12px 14px;
+
+    border-top: 1px solid var(--color-border);
+
+    background-color: var(--color-surface-muted);
+}
+
+.table-footer-information {
+    color: var(--color-text-muted);
+
+    font-size: 0.76rem;
+}
+
+.table-pagination {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+
+    font-size: 0.78rem;
+}
+
+.pagination-link:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.pagination-link.is-active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
+}
+
+.pagination-link.is-disabled {
+    cursor: not-allowed;
+
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-light);
+
+    pointer-events: none;
+}
+
+.table-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+
+    white-space: nowrap;
+}
+
+.table-action {
+    padding: 0;
+
+    border: 0;
+    background-color: transparent;
+
+    color: var(--color-primary);
+
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.table-action:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+.table-action-danger {
+    color: var(--color-danger);
+}
+
+.table-action-danger:hover {
+    color: var(--color-danger);
+}
+
+.table-action-separator {
+    color: var(--color-border-strong);
+
+    font-size: 0.75rem;
+}
+
+.table-filter-result {
+    margin-bottom: 12px;
+
+    color: var(--color-text-muted);
+
+    font-size: 0.78rem;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table > :not(caption) > * > * {
+    border-color: var(--color-border);
+}
+
+@media (max-width: 760px) {
+    .system-table {
+        min-width: 760px;
+    }
+
+    .table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .table-actions {
+        justify-content: flex-start;
+    }
+}

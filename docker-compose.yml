@@ -1,0 +1,80 @@
+services:
+  oficina-postgres:
+    container_name: oficina_postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${OFICINA_POSTGRES_DB}
+      POSTGRES_USER: ${OFICINA_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${OFICINA_POSTGRES_PASSWORD}
+    volumes:
+      - oficina_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${OFICINA_POSTGRES_USER} -d ${OFICINA_POSTGRES_DB}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - oficina-network
+
+  oficina-web:
+    container_name: oficina_web
+    image: sistema-oficina:1.0
+    restart: unless-stopped
+    depends_on:
+      oficina-postgres:
+        condition: service_healthy
+    command:
+      - gunicorn
+      - --bind
+      - 0.0.0.0:5000
+      - --workers
+      - "2"
+      - run:app
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${OFICINA_POSTGRES_USER}:${OFICINA_POSTGRES_PASSWORD}@oficina-postgres:5432/${OFICINA_POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      FLASK_ENV: production
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
+    networks:
+      - oficina-network
+      - evolution-network
+
+  oficina-worker:
+    container_name: oficina_worker
+    image: sistema-oficina:1.0
+    restart: unless-stopped
+    depends_on:
+      oficina-postgres:
+        condition: service_healthy
+    command:
+      - python
+      - -u
+      - worker_notificacoes.py
+    environment:
+      DATABASE_URL: postgresql+psycopg://${OFICINA_POSTGRES_USER}:${OFICINA_POSTGRES_PASSWORD}@oficina-postgres:5432/${OFICINA_POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      FLASK_ENV: production
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE}
+    networks:
+      - oficina-network
+      - evolution-network
+
+volumes:
+  oficina_postgres_data:
+
+networks:
+  oficina-network:
+    driver: bridge
+
+  evolution-network:
+    external: true
+    name: evolution_evolution-network

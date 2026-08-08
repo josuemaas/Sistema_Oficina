@@ -1,0 +1,79 @@
+services:
+  evolution-api:
+    container_name: oficina_evolution_api
+    image: evoapicloud/evolution-api:latest
+    restart: unless-stopped
+    depends_on:
+      evolution-postgres:
+        condition: service_healthy
+      evolution-redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-network
+
+  evolution-manager:
+    container_name: oficina_evolution_manager
+    image: evoapicloud/evolution-manager:latest
+    restart: unless-stopped
+    depends_on:
+      - evolution-api
+    ports:
+      - "3000:80"
+    networks:
+      - evolution-network
+
+  evolution-postgres:
+    container_name: oficina_evolution_postgres
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_DATABASE}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - evolution-network
+
+  evolution-redis:
+    container_name: oficina_evolution_redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    volumes:
+      - evolution_redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - evolution-network
+
+volumes:
+  evolution_instances:
+  evolution_postgres_data:
+  evolution_redis_data:
+
+networks:
+  evolution-network:
+    driver: bridge

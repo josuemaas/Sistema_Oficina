@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if modo == "selecionar" %}
+Selecionar Cliente
+{% else %}
+Clientes
+{% endif %}
+| Sistema da Oficina
+{% endblock %}
+
+{% block breadcrumb %}
+<a
+    href="{{ url_for('dashboard_web.index') }}"
+    class="breadcrumb-link"
+>
+    Início
+</a>
+
+<span>›</span>
+
+<span>
+    {% if modo == "selecionar" %}
+        Selecionar cliente
+    {% else %}
+        Clientes
+    {% endif %}
+</span>
+{% endblock %}
+
+{% block page_title %}
+{% if modo == "selecionar" %}
+Selecionar cliente
+{% else %}
+Clientes
+{% endif %}
+{% endblock %}
+
+{% block page_description %}
+{% if modo == "selecionar" %}
+Localize e selecione o cliente da ordem de serviço.
+{% else %}
+Consulte e gerencie os clientes cadastrados na oficina.
+{% endif %}
+{% endblock %}
+
+{% block page_actions %}
+{% if modo == "selecionar" %}
+
+<a
+    href="{{ url_for('ordem_servico_web.cadastrar') }}"
+    class="button button-neutral"
+>
+    Retornar
+</a>
+
+{% else %}
+
+<a
+    href="{{ url_for('cliente_web.cadastrar') }}"
+    class="button button-primary"
+>
+    Novo cliente
+</a>
+
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-section">
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-header-content">
+
+                <h2 class="panel-title">
+                    Pesquisa
+                </h2>
+
+                <p class="panel-description">
+                    Informe o nome, telefone ou e-mail do cliente.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel-body">
+
+            <form
+                method="get"
+                action="{{ url_for('cliente_web.listar') }}"
+                class="page-search"
+            >
+
+                {% if modo == "selecionar" %}
+
+                    <input
+                        type="hidden"
+                        name="modo"
+                        value="selecionar"
+                    >
+
+                {% endif %}
+
+                <div class="page-search-field">
+
+                    <label
+                        for="pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar cliente
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Nome, telefone ou e-mail"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+                <div class="page-search-actions">
+
+                    <button
+                        type="submit"
+                        class="button button-primary"
+                    >
+                        Pesquisar
+                    </button>
+
+                    {% if pesquisa %}
+
+                        <a
+                            href="{{ url_for(
+                                'cliente_web.listar',
+                                modo=modo
+                            ) }}"
+                            class="button button-neutral"
+                        >
+                            Limpar
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="page-section">
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-header-content">
+
+                <h2 class="panel-title">
+                    {% if modo == "selecionar" %}
+                        Clientes disponíveis
+                    {% else %}
+                        Clientes cadastrados
+                    {% endif %}
+                </h2>
+
+                <p class="panel-description">
+                    {% if pesquisa %}
+                        Resultado da pesquisa por “{{ pesquisa }}”.
+                    {% else %}
+                        Relação de clientes registrados no sistema.
+                    {% endif %}
+                </p>
+
+            </div>
+
+            <div class="panel-actions">
+
+                <span class="badge badge-neutral">
+                    {{ clientes|length }}
+
+                    {% if clientes|length == 1 %}
+                        registro
+                    {% else %}
+                        registros
+                    {% endif %}
+                </span>
+
+            </div>
+
+        </div>
+
+        {% if clientes %}
+
+            <div class="table-container">
+
+                <table class="system-table">
+
+                    <thead>
+
+                        <tr>
+                            <th class="column-id">
+                                Código
+                            </th>
+
+                            <th>
+                                Nome
+                            </th>
+
+                            <th>
+                                Telefone
+                            </th>
+
+                            <th>
+                                E-mail
+                            </th>
+
+                            <th class="column-status">
+                                Status
+                            </th>
+
+                            <th class="column-actions">
+                                Ações
+                            </th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for cliente in clientes %}
+
+                            <tr>
+
+                                <td>
+                                    {{ cliente.id }}
+                                </td>
+
+                                <td>
+
+                                    <span class="table-primary-text">
+                                        {{ cliente.nome }}
+                                    </span>
+
+                                    {% if cliente.recebe_notificacao %}
+
+                                        <span class="table-secondary-text">
+                                            Recebe notificações
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ cliente.telefone }}
+                                </td>
+
+                                <td>
+                                    {{ cliente.email or "-" }}
+                                </td>
+
+                                <td>
+
+                                    {% if cliente.ativo %}
+
+                                        <span class="badge badge-success">
+                                            Ativo
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge badge-neutral">
+                                            Inativo
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td class="column-actions">
+
+                                    <div class="table-actions">
+
+                                        {% if modo == "selecionar" %}
+
+                                            {% if cliente.ativo %}
+
+                                                <a
+                                                    href="{{ url_for(
+                                                        'ordem_servico_web.cadastrar',
+                                                        cliente_id=cliente.id
+                                                    ) }}"
+                                                    class="table-action"
+                                                >
+                                                    Selecionar
+                                                </a>
+
+                                            {% else %}
+
+                                                <span class="table-secondary-text">
+                                                    Indisponível
+                                                </span>
+
+                                            {% endif %}
+
+                                        {% else %}
+
+                                            <a
+                                                href="{{ url_for(
+                                                    'cliente_web.detalhes',
+                                                    cliente_id=cliente.id
+                                                ) }}"
+                                                class="table-action"
+                                            >
+                                                Visualizar
+                                            </a>
+
+                                            <span class="table-action-separator">
+                                                |
+                                            </span>
+
+                                            <a
+                                                href="{{ url_for(
+                                                    'cliente_web.editar',
+                                                    cliente_id=cliente.id
+                                                ) }}"
+                                                class="table-action"
+                                            >
+                                                Alterar
+                                            </a>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                <div class="table-footer">
+
+                    <span class="table-footer-information">
+                        Mostrando {{ clientes|length }}
+                        {% if clientes|length == 1 %}
+                            registro
+                        {% else %}
+                            registros
+                        {% endif %}
+                    </span>
+
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <h3 class="empty-state-title">
+                    Nenhum cliente encontrado
+                </h3>
+
+                <p class="empty-state-description">
+                    Verifique os dados pesquisados ou cadastre um novo cliente.
+                </p>
+
+                {% if modo != "selecionar" %}
+
+                    <a
+                        href="{{ url_for('cliente_web.cadastrar') }}"
+                        class="button button-primary"
+                    >
+                        Novo cliente
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

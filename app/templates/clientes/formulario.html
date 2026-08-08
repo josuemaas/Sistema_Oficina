@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if cliente %}
+Editar cliente
+{% else %}
+Novo cliente
+{% endif %}
+| Sistema da Oficina
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 mb-1">
+                    {% if cliente %}
+                        Editar cliente
+                    {% else %}
+                        Novo cliente
+                    {% endif %}
+                </h1>
+
+                <p class="text-muted mb-0">
+                    Preencha os dados do cliente.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for('cliente_web.listar') }}"
+                class="btn btn-outline-secondary"
+            >
+                Voltar
+            </a>
+        </div>
+
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% for categoria, mensagem in mensagens %}
+                <div class="alert alert-{{ categoria }}">
+                    {{ mensagem }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="post">
+                    <div class="mb-3">
+                        <label
+                            for="nome"
+                            class="form-label"
+                        >
+                            Nome completo *
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nome"
+                            name="nome"
+                            class="form-control"
+                            value="{{ cliente.nome if cliente else '' }}"
+                            maxlength="150"
+                            required
+                        >
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label
+                                for="telefone"
+                                class="form-label"
+                            >
+                                WhatsApp/telefone *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="telefone"
+                                name="telefone"
+                                class="form-control"
+                                value="{{ cliente.telefone if cliente else '' }}"
+                                maxlength="20"
+                                placeholder="47999999999"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label
+                                for="email"
+                                class="form-label"
+                            >
+                                E-mail
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-control"
+                                value="{{ cliente.email if cliente and cliente.email else '' }}"
+                                maxlength="150"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label
+                            for="observacoes"
+                            class="form-label"
+                        >
+                            Observações
+                        </label>
+
+                        <textarea
+                            id="observacoes"
+                            name="observacoes"
+                            class="form-control"
+                            rows="4"
+                        >{{ cliente.observacoes if cliente and cliente.observacoes else '' }}</textarea>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input
+                            type="checkbox"
+                            id="recebe_notificacao"
+                            name="recebe_notificacao"
+                            class="form-check-input"
+                            {% if cliente and cliente.recebe_notificacao %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="recebe_notificacao"
+                            class="form-check-label"
+                        >
+                            Cliente autoriza o recebimento de notificações
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a
+                            href="{{ url_for('cliente_web.listar') }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Cancelar
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            {% if cliente %}
+                                Salvar alterações
+                            {% else %}
+                                Cadastrar cliente
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}
+Detalhes do Cliente | Sistema da Oficina
+{% endblock %}
+
+{% block page_title %}
+Detalhes do Cliente
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1 class="page-title">
+            {{ cliente.nome }}
+        </h1>
+
+        <p class="page-description">
+            Consulte os dados e o histórico
+            de atendimentos do cliente.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+
+        <a
+            href="{{ url_for(
+                'ordem_servico_web.cadastrar',
+                cliente_id=cliente.id
+            ) }}"
+            class="btn btn-primary"
+        >
+            + Nova ordem
+        </a>
+
+        <a
+            href="{{ url_for(
+                'cliente_web.editar',
+                cliente_id=cliente.id
+            ) }}"
+            class="btn btn-outline-primary"
+        >
+            Editar cliente
+        </a>
+
+        <a
+            href="{{ url_for(
+                'cliente_web.listar'
+            ) }}"
+            class="btn btn-outline-secondary"
+        >
+            Voltar
+        </a>
+
+    </div>
+
+</div>
+
+{% with mensagens = get_flashed_messages(
+    with_categories=true
+) %}
+    {% for categoria, mensagem in mensagens %}
+
+        <div
+            class="alert alert-{{ categoria }}
+                   alert-dismissible fade show"
+            role="alert"
+        >
+            {{ mensagem }}
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+            ></button>
+        </div>
+
+    {% endfor %}
+{% endwith %}
+
+<div class="card system-card mb-4">
+
+    <div class="card-header system-card-header">
+
+        <div>
+            <h2 class="section-title">
+                Dados do cliente
+            </h2>
+
+            <p class="section-description">
+                Informações cadastrais.
+            </p>
+        </div>
+
+        {% if cliente.ativo %}
+            <span class="badge text-bg-primary">
+                Cliente ativo
+            </span>
+        {% else %}
+            <span class="badge text-bg-secondary">
+                Cliente inativo
+            </span>
+        {% endif %}
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <div class="col-md-4">
+                <span class="text-muted small">
+                    Nome
+                </span>
+
+                <p class="mb-0 fw-semibold">
+                    {{ cliente.nome }}
+                </p>
+            </div>
+
+            <div class="col-md-4">
+                <span class="text-muted small">
+                    Telefone
+                </span>
+
+                <p class="mb-0">
+                    {{ cliente.telefone }}
+                </p>
+            </div>
+
+            <div class="col-md-4">
+                <span class="text-muted small">
+                    E-mail
+                </span>
+
+                <p class="mb-0">
+                    {{ cliente.email or "-" }}
+                </p>
+            </div>
+
+            <div class="col-md-4">
+                <span class="text-muted small">
+                    Notificações
+                </span>
+
+                <p class="mb-0">
+                    {% if cliente.recebe_notificacao %}
+                        Autorizadas
+                    {% else %}
+                        Não autorizadas
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="col-md-8">
+                <span class="text-muted small">
+                    Observações
+                </span>
+
+                <p class="mb-0">
+                    {{ cliente.observacoes or "-" }}
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Total de ordens
+            </p>
+
+            <h2 class="summary-value">
+                {{ total_ordens }}
+            </h2>
+
+            <span class="text-muted small">
+                Atendimentos registrados
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Último atendimento
+            </p>
+
+            <h2
+                class="summary-value"
+                style="font-size: 1.35rem;"
+            >
+                {% if ultima_data %}
+                    {{ ultima_data.strftime(
+                        "%d/%m/%Y"
+                    ) }}
+                {% else %}
+                    -
+                {% endif %}
+            </h2>
+
+            <span class="text-muted small">
+                Data da ordem mais recente
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="summary-card">
+
+            <p class="summary-label">
+                Última quilometragem
+            </p>
+
+            <h2
+                class="summary-value"
+                style="font-size: 1.35rem;"
+            >
+                {% if ultima_quilometragem
+                    is not none %}
+                    {{ ultima_quilometragem }} km
+                {% else %}
+                    -
+                {% endif %}
+            </h2>
+
+            <span class="text-muted small">
+                Quilometragem registrada
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="card system-card mb-4">
+
+    <div class="card-header system-card-header">
+
+        <div>
+            <h2 class="section-title">
+                Histórico de serviços
+            </h2>
+
+            <p class="section-description">
+                Trocas e manutenções realizadas
+                para este cliente.
+            </p>
+        </div>
+
+        <span class="badge text-bg-secondary">
+            {{ ordens|length }}
+
+            {% if ordens|length == 1 %}
+                registro
+            {% else %}
+                registros
+            {% endif %}
+        </span>
+
+    </div>
+
+    <div class="card-body border-bottom">
+
+        <form
+            method="get"
+            action="{{ url_for(
+                'cliente_web.detalhes',
+                cliente_id=cliente.id
+            ) }}"
+        >
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-lg-9">
+
+                    <label
+                        for="pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar no histórico
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Placa, marca, modelo, óleo ou serviço"
+                    >
+
+                </div>
+
+                <div class="col-lg-3">
+
+                    <div class="d-flex gap-2">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary
+                                   flex-grow-1"
+                        >
+                            Pesquisar
+                        </button>
+
+                        {% if pesquisa %}
+
+                            <a
+                                href="{{ url_for(
+                                    'cliente_web.detalhes',
+                                    cliente_id=cliente.id
+                                ) }}"
+                                class="btn
+                                       btn-outline-secondary"
+                            >
+                                Limpar
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if ordens %}
+
+            <div class="table-responsive">
+
+                <table
+                    class="table system-table
+                           align-middle mb-0"
+                >
+
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Veículo</th>
+                            <th>Quilometragem</th>
+                            <th>Serviço</th>
+                            <th>Óleo</th>
+                            <th>Próxima troca</th>
+                            <th class="text-end">
+                                Ações
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for ordem in ordens %}
+
+                            <tr>
+
+                                <td>
+                                    {{ ordem.data_servico.strftime(
+                                        "%d/%m/%Y"
+                                    ) }}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ ordem.marca }}
+                                        {{ ordem.modelo }}
+                                    </strong>
+
+                                    <br>
+
+                                    <small class="text-muted">
+                                        {{ ordem.placa }}
+
+                                        {% if ordem.ano %}
+                                            • {{ ordem.ano }}
+                                        {% endif %}
+                                    </small>
+                                </td>
+
+                                <td>
+                                    {{ ordem.quilometragem }}
+                                    km
+                                </td>
+
+                                <td>
+                                    {{ ordem.descricao_servico }}
+                                </td>
+
+                                <td>
+                                    {{ ordem.tipo_oleo or "-" }}
+
+                                    {% if ordem.quantidade_litros
+                                        is not none %}
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.quantidade_litros }}
+                                            litros
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if ordem.proxima_troca_km %}
+                                        {{ ordem.proxima_troca_km }}
+                                        km
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                    {% if ordem.proxima_troca_data %}
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.proxima_troca_data.strftime(
+                                                "%d/%m/%Y"
+                                            ) }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end">
+
+                                    <a
+                                        href="{{ url_for(
+                                            'ordem_servico_web.editar',
+                                            ordem_id=ordem.id
+                                        ) }}"
+                                        class="btn btn-sm
+                                               btn-outline-primary"
+                                    >
+                                        Editar
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                {% if pesquisa %}
+
+                    <h3>
+                        Nenhum serviço encontrado
+                    </h3>
+
+                    <p>
+                        Nenhum registro corresponde
+                        ao termo “{{ pesquisa }}”.
+                    </p>
+
+                    <a
+                        href="{{ url_for(
+                            'cliente_web.detalhes',
+                            cliente_id=cliente.id
+                        ) }}"
+                        class="btn
+                               btn-outline-primary"
+                    >
+                        Limpar pesquisa
+                    </a>
+
+                {% else %}
+
+                    <h3>
+                        Nenhum atendimento registrado
+                    </h3>
+
+                    <p>
+                        Este cliente ainda não possui
+                        ordens de serviço.
+                    </p>
+
+                    <a
+                        href="{{ url_for(
+                            'ordem_servico_web.cadastrar',
+                            cliente_id=cliente.id
+                        ) }}"
+                        class="btn btn-primary"
+                    >
+                        Cadastrar primeira ordem
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

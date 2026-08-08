@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}
+Notificações | Sistema da Oficina
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            Notificações
+        </h1>
+
+        <p class="text-muted mb-0">
+            Visualize e envie lembretes de manutenção
+            aos clientes.
+        </p>
+    </div>
+</div>
+
+{% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in mensagens %}
+        <div
+            class="alert alert-{{ categoria }} alert-dismissible fade show"
+            role="alert"
+        >
+            {{ mensagem }}
+
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Fechar"
+            ></button>
+        </div>
+    {% endfor %}
+{% endwith %}
+
+<div class="alert alert-info">
+    Nesta etapa, o botão abre o WhatsApp com a mensagem
+    preenchida. O envio automático pela API será conectado
+    posteriormente.
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if ordens %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Telefone</th>
+                            <th>Veículo</th>
+                            <th>Próxima troca</th>
+                            <th>Autorização</th>
+                            <th class="text-end">
+                                Ações
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for ordem in ordens %}
+                            <tr>
+                                <td>
+                                    {% if ordem.veiculo
+                                        and ordem.veiculo.cliente %}
+                                        <strong>
+                                            {{ ordem.veiculo.cliente.nome }}
+                                        </strong>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if ordem.veiculo
+                                        and ordem.veiculo.cliente %}
+                                        {{ ordem.veiculo.cliente.telefone }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if ordem.veiculo %}
+                                        <strong>
+                                            {{ ordem.veiculo.marca }}
+                                            {{ ordem.veiculo.modelo }}
+                                        </strong>
+
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.veiculo.placa }}
+                                        </small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if ordem.proxima_troca_km %}
+                                        {{ ordem.proxima_troca_km }} km
+                                    {% endif %}
+
+                                    {% if ordem.proxima_troca_data %}
+                                        <br>
+
+                                        <small class="text-muted">
+                                            {{ ordem.proxima_troca_data.strftime(
+                                                "%d/%m/%Y"
+                                            ) }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if ordem.veiculo
+                                        and ordem.veiculo.cliente
+                                        and ordem.veiculo.cliente.recebe_notificacao %}
+                                        <span class="badge text-bg-success">
+                                            Autorizada
+                                        </span>
+                                    {% else %}
+                                        <span class="badge text-bg-secondary">
+                                            Não autorizada
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-end">
+                                    {% if ordem.veiculo
+                                        and ordem.veiculo.cliente
+                                        and ordem.veiculo.cliente.recebe_notificacao %}
+                                        <a
+                                            href="{{ url_for(
+                                                'notificacao_web.visualizar',
+                                                ordem_id=ordem.id
+                                            ) }}"
+                                            class="btn btn-sm btn-outline-success"
+                                        >
+                                            Preparar mensagem
+                                        </a>
+                                    {% else %}
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            disabled
+                                        >
+                                            Sem autorização
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <h5>
+                    Nenhuma notificação disponível
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Cadastre uma próxima troca em uma ordem
+                    de serviço para gerar o lembrete.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

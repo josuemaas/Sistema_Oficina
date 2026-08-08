@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}
+Visualizar Notificação | Sistema da Oficina
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-xl-9">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 mb-1">
+                    Preparar notificação
+                </h1>
+
+                <p class="text-muted mb-0">
+                    Confira a mensagem antes de abrir o WhatsApp.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for('notificacao_web.listar') }}"
+                class="btn btn-outline-secondary"
+            >
+                Voltar
+            </a>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h2 class="h5 mb-0">
+                    Destinatário
+                </h2>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Cliente</strong>
+
+                        <p class="mb-0">
+                            {{ notificacao.cliente.nome }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <strong>Telefone</strong>
+
+                        <p class="mb-0">
+                            {{ notificacao.cliente.telefone }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <strong>Veículo</strong>
+
+                        <p class="mb-0">
+                            {{ notificacao.veiculo.marca }}
+                            {{ notificacao.veiculo.modelo }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <strong>Placa</strong>
+
+                        <p class="mb-0">
+                            {{ notificacao.veiculo.placa }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h2 class="h5 mb-0">
+                    Mensagem
+                </h2>
+            </div>
+
+            <div class="card-body">
+                <textarea
+                    class="form-control"
+                    rows="14"
+                    readonly
+                >{{ notificacao.mensagem }}</textarea>
+            </div>
+        </div>
+
+        <div class="alert alert-warning">
+            O WhatsApp será aberto com a mensagem pronta.
+            Para concluir o teste, clique em enviar dentro
+            do próprio WhatsApp.
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a
+                href="{{ url_for('notificacao_web.listar') }}"
+                class="btn btn-outline-secondary"
+            >
+                Cancelar
+            </a>
+
+            <a
+                href="{{ notificacao.link_whatsapp }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-success"
+            >
+                Abrir WhatsApp
+            </a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
