@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}
+Ordem de Serviço #{{ ordem.id }} | Sistema da Oficina
+{% endblock %}
+
+{% block breadcrumb %}
+<a
+    href="{{ url_for('dashboard_web.index') }}"
+    class="breadcrumb-link"
+>
+    Início
+</a>
+
+<span>›</span>
+
+<a
+    href="{{ url_for('ordem_servico_web.listar') }}"
+    class="breadcrumb-link"
+>
+    Ordens de Serviço
+</a>
+
+<span>›</span>
+
+<span>
+    Visualizar
+</span>
+{% endblock %}
+
+{% block page_title %}
+Ordem de Serviço #{{ ordem.id }}
+{% endblock %}
+
+{% block page_description %}
+Consulte as informações registradas nesta ordem.
+{% endblock %}
+
+{% block page_actions %}
+<a
+    href="{{ url_for('ordem_servico_web.listar') }}"
+    class="button button-neutral button-small"
+>
+    Voltar
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-section">
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-header-content">
+
+                <h2 class="panel-title">
+                    Detalhes da ordem
+                </h2>
+
+                <p class="panel-description">
+                    Dados do atendimento e da próxima manutenção prevista.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel-body">
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Código da ordem
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.id }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Cliente
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.cliente.nome if ordem.cliente else "-" }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Telefone
+                    </span>
+
+                    <p class="record-field-value">
+                        {% set telefone = ordem.cliente.telefone if ordem.cliente else "" %}
+
+                        {% if telefone|length == 11 %}
+                            ({{ telefone[:2] }}) {{ telefone[2:7] }}-{{ telefone[7:] }}
+                        {% elif telefone|length == 10 %}
+                            ({{ telefone[:2] }}) {{ telefone[2:6] }}-{{ telefone[6:] }}
+                        {% else %}
+                            {{ telefone or "-" }}
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Marca
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.marca }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Modelo
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.modelo }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Placa
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.placa }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Data do serviço
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.data_servico.strftime("%d/%m/%Y") }}
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Quilometragem
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ "{:,}".format(ordem.quilometragem).replace(",", ".") }} km
+                    </p>
+                </div>
+
+                <div class="col-md-4">
+                    <span class="record-field-label">
+                        Tipo de óleo
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.tipo_oleo or "-" }}
+                    </p>
+                </div>
+
+                <div class="col-md-6">
+                    <span class="record-field-label">
+                        Descrição do serviço
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.descricao_servico }}
+                    </p>
+                </div>
+
+                <div class="col-md-3">
+                    <span class="record-field-label">
+                        Próxima quilometragem prevista
+                    </span>
+
+                    <p class="record-field-value">
+                        {% if ordem.proxima_troca_km is not none %}
+                            {{ "{:,}".format(ordem.proxima_troca_km).replace(",", ".") }} km
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="col-md-3">
+                    <span class="record-field-label">
+                        Próxima data prevista
+                    </span>
+
+                    <p class="record-field-value">
+                        {% if ordem.proxima_troca_data %}
+                            {{ ordem.proxima_troca_data.strftime("%d/%m/%Y") }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="col-12">
+                    <span class="record-field-label">
+                        Observações
+                    </span>
+
+                    <p class="record-field-value">
+                        {{ ordem.observacoes or "-" }}
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

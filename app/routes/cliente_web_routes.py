@@ -18,30 +18,91 @@ cliente_web_bp = Blueprint(
 )
 
 
+TIPOS_PESQUISA_CLIENTE = {
+    "nome",
+    "cpf",
+    "telefone",
+}
+
+
+def obter_contexto_selecao_ordem():
+    if request.args.get("modo") != "selecionar":
+        return "", None
+
+    ordem_id = request.args.get(
+        "ordem_id",
+        type=int,
+    )
+
+    if ordem_id is not None and ordem_id < 1:
+        ordem_id = None
+
+    return "selecionar", ordem_id
+
+
+def somente_numeros(
+    valor: str,
+):
+    return "".join(
+        caractere
+        for caractere in (valor or "")
+        if caractere.isdigit()
+    )
+
+
 def filtrar_clientes(
     clientes: list,
     pesquisa: str,
+    tipo_pesquisa: str,
 ):
     """
-    Filtra clientes por nome, telefone ou e-mail.
+    Filtra clientes pelo campo selecionado.
     """
 
     if not pesquisa:
         return clientes
 
-    termo = pesquisa.lower().strip()
+    if tipo_pesquisa == "cpf":
+        termo = somente_numeros(
+            pesquisa
+        )
+
+        if not termo:
+            return []
+
+        return [
+            cliente
+            for cliente in clientes
+            if termo
+            in somente_numeros(
+                cliente.cpf_cnpj
+            )
+        ]
+
+    if tipo_pesquisa == "telefone":
+        termo = somente_numeros(
+            pesquisa
+        )
+
+        if not termo:
+            return []
+
+        return [
+            cliente
+            for cliente in clientes
+            if termo
+            in somente_numeros(
+                cliente.telefone
+            )
+        ]
+
+    termo = pesquisa.casefold().strip()
 
     return [
         cliente
         for cliente in clientes
-        if (
-            termo in cliente.nome.lower()
-            or termo in cliente.telefone.lower()
-            or (
-                cliente.email
-                and termo in cliente.email.lower()
-            )
-        )
+        if termo
+        in cliente.nome.casefold()
     ]
 
 
@@ -112,23 +173,36 @@ def listar():
         "",
     ).strip()
 
-    modo = request.args.get(
-        "modo",
-        "",
-    ).strip()
+    modo, ordem_id = (
+        obter_contexto_selecao_ordem()
+    )
+
+    tipo_pesquisa = request.args.get(
+        "tipo_pesquisa",
+        "nome",
+    ).strip().lower()
+
+    if (
+        tipo_pesquisa
+        not in TIPOS_PESQUISA_CLIENTE
+    ):
+        tipo_pesquisa = "nome"
 
     clientes = ClienteService.listar_clientes()
 
     clientes = filtrar_clientes(
         clientes,
         pesquisa,
+        tipo_pesquisa,
     )
 
     return render_template(
         "clientes/lista.html",
         clientes=clientes,
         pesquisa=pesquisa,
+        tipo_pesquisa=tipo_pesquisa,
         modo=modo,
+        ordem_id=ordem_id,
     )
 
 
@@ -213,16 +287,34 @@ def cadastrar():
     um novo cliente.
     """
 
+    modo, ordem_id = (
+        obter_contexto_selecao_ordem()
+    )
+
+    contexto_selecao = {
+        "modo": modo,
+        "ordem_id": ordem_id,
+    }
+
     if request.method == "POST":
         dados = {
             "nome": request.form.get(
                 "nome",
                 "",
             ).strip(),
+            "cpf_cnpj": (
+                somente_numeros(
+                    request.form.get(
+                        "cpf_cnpj",
+                        "",
+                    )
+                )
+                or None
+            ),
             "telefone": request.form.get(
                 "telefone",
                 "",
-            ).strip(),
+            ),
             "email": (
                 request.form.get(
                     "email",
@@ -245,6 +337,10 @@ def cadastrar():
             ),
         }
 
+        dados["telefone"] = somente_numeros(
+            dados["telefone"]
+        )
+
         if not dados["nome"]:
             flash(
                 "Informe o nome do cliente.",
@@ -254,6 +350,7 @@ def cadastrar():
             return render_template(
                 "clientes/formulario.html",
                 cliente=None,
+                **contexto_selecao,
             )
 
         if not dados["telefone"]:
@@ -265,16 +362,39 @@ def cadastrar():
             return render_template(
                 "clientes/formulario.html",
                 cliente=None,
+                **contexto_selecao,
             )
 
-        ClienteService.cadastrar_cliente(
-            dados
-        )
+        try:
+            ClienteService.cadastrar_cliente(
+                dados
+            )
+
+        except ValueError as erro:
+            flash(
+                str(erro),
+                "danger",
+            )
+
+            return render_template(
+                "clientes/formulario.html",
+                cliente=None,
+                **contexto_selecao,
+            )
 
         flash(
             "Cliente cadastrado com sucesso.",
             "success",
         )
+
+        if modo == "selecionar":
+            return redirect(
+                url_for(
+                    "cliente_web.listar",
+                    modo=modo,
+                    ordem_id=ordem_id,
+                )
+            )
 
         return redirect(
             url_for("cliente_web.listar")
@@ -283,6 +403,7 @@ def cadastrar():
     return render_template(
         "clientes/formulario.html",
         cliente=None,
+        **contexto_selecao,
     )
 
 
@@ -316,10 +437,19 @@ def editar(cliente_id: int):
                 "nome",
                 "",
             ).strip(),
+            "cpf_cnpj": (
+                somente_numeros(
+                    request.form.get(
+                        "cpf_cnpj",
+                        "",
+                    )
+                )
+                or None
+            ),
             "telefone": request.form.get(
                 "telefone",
                 "",
-            ).strip(),
+            ),
             "email": (
                 request.form.get(
                     "email",
@@ -341,6 +471,10 @@ def editar(cliente_id: int):
                 == "on"
             ),
         }
+
+        dados["telefone"] = somente_numeros(
+            dados["telefone"]
+        )
 
         if not dados["nome"]:
             flash(
@@ -364,10 +498,22 @@ def editar(cliente_id: int):
                 cliente=cliente,
             )
 
-        ClienteService.atualizar_cliente(
-            cliente_id,
-            dados,
-        )
+        try:
+            ClienteService.atualizar_cliente(
+                cliente_id,
+                dados,
+            )
+
+        except ValueError as erro:
+            flash(
+                str(erro),
+                "danger",
+            )
+
+            return render_template(
+                "clientes/formulario.html",
+                cliente=cliente,
+            )
 
         flash(
             "Cliente atualizado com sucesso.",

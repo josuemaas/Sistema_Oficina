@@ -17,50 +17,348 @@ Nova Ordem de Serviço
 {% endif %}
 {% endblock %}
 
+{% block page_description %}
+{% if ordem %}
+Atualize os dados registrados nesta ordem de serviço.
+{% else %}
+Registre o atendimento e agende a próxima manutenção.
+{% endif %}
+{% endblock %}
+
+{% block page_actions %}
+<a
+    href="{{ url_for('ordem_servico_web.listar') }}"
+    class="button button-neutral button-small"
+>
+    Voltar
+</a>
+{% endblock %}
+
 {% block content %}
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">
-            {% if ordem %}
-            Editar ordem de serviço
-            {% else %}
-            Nova ordem de serviço
-            {% endif %}
-        </h1>
+{% if ordem %}
+    {% set consulta_clientes_url = url_for(
+        'cliente_web.listar',
+        modo='selecionar',
+        ordem_id=ordem.id
+    ) %}
+{% else %}
+    {% set consulta_clientes_url = url_for(
+        'cliente_web.listar',
+        modo='selecionar'
+    ) %}
+{% endif %}
 
-        <p class="page-description">
-            Informe o cliente e os dados do atendimento.
-        </p>
-    </div>
+<form
+    method="post"
+    id="formOrdemServico"
+    {% if not ordem %}
+        class="form-page mx-auto"
+    {% endif %}
+>
 
-    <a
-        href="{{ url_for('ordem_servico_web.listar') }}"
-        class="btn btn-outline-secondary"
-    >
-        Voltar
-    </a>
-</div>
+{% if not ordem %}
 
-{% with mensagens = get_flashed_messages(with_categories=true) %}
-    {% for categoria, mensagem in mensagens %}
-        <div
-            class="alert alert-{{ categoria }} alert-dismissible fade show"
-            role="alert"
-        >
-            {{ mensagem }}
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-header-content">
+
+                <h2 class="panel-title">
+                    Dados da ordem de serviço
+                </h2>
+
+                <p class="panel-description">
+                    Informe os dados essenciais do atendimento.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel-body form-layout">
+
+            <section class="form-section">
+
+                <h3 class="form-section-title">
+                    Cliente
+                </h3>
+
+                <input
+                    type="hidden"
+                    id="cliente_id"
+                    name="cliente_id"
+                    value="{{ cliente_selecionado.id if cliente_selecionado else '' }}"
+                >
+
+                <div class="form-group">
+
+                    <label
+                        for="cliente_nome"
+                        class="form-label"
+                    >
+                        Cliente
+                        <span class="form-required">*</span>
+                    </label>
+
+                    <div class="lookup-field">
+
+                        <input
+                            type="text"
+                            id="cliente_nome"
+                            class="form-control"
+                            value="{{ cliente_selecionado.nome if cliente_selecionado else '' }}"
+                            placeholder="Clique para selecionar um cliente"
+                            data-client-selection-url="{{ consulta_clientes_url }}"
+                            role="link"
+                            readonly
+                            required
+                        >
+
+                        <a
+                            href="{{ consulta_clientes_url }}"
+                            class="lookup-button"
+                            id="abrirBuscaCliente"
+                            aria-label="Pesquisar cliente"
+                        >
+                            &#128269;
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="form-section">
+
+                <h3 class="form-section-title">
+                    Veículo
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label
+                            for="placa"
+                            class="form-label"
+                        >
+                            Placa
+                            <span class="form-required">*</span>
+                        </label>
+
+                        <input
+                            type="text"
+                            id="placa"
+                            name="placa"
+                            class="form-control text-uppercase"
+                            value="{{ request.form.get('placa', '') }}"
+                            maxlength="7"
+                            placeholder="ABC1D23"
+                            autocomplete="off"
+                            autocapitalize="characters"
+                            spellcheck="false"
+                            data-order-plate-input
+                            required
+                        >
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label
+                            for="quilometragem"
+                            class="form-label"
+                        >
+                            Quilometragem atual
+                            <span class="form-required">*</span>
+                        </label>
+
+                        <input
+                            type="number"
+                            id="quilometragem"
+                            name="quilometragem"
+                            class="form-control"
+                            value="{{ request.form.get('quilometragem', '') }}"
+                            min="0"
+                            inputmode="numeric"
+                            placeholder="85000"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="form-section">
+
+                <h3 class="form-section-title">
+                    Data do atendimento
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label
+                            for="data_servico"
+                            class="form-label"
+                        >
+                            Data do serviço
+                        </label>
+
+                        <input
+                            type="date"
+                            id="data_servico"
+                            class="form-control"
+                            value="{{ data_servico.isoformat() if data_servico else '' }}"
+                            readonly
+                        >
+
+                        <p class="form-help">
+                            Definida automaticamente pelo sistema.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <section class="form-section">
+
+                <h3 class="form-section-title">
+                    Serviços realizados
+                </h3>
+
+                <div
+                    class="d-flex flex-column gap-2"
+                    role="group"
+                    aria-label="Serviços realizados"
+                >
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="troca_oleo"
+                            name="troca_oleo"
+                            class="form-check-input"
+                            {% if request.form.get('troca_oleo') == 'on' %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="troca_oleo"
+                            class="form-check-label"
+                        >
+                            Troca de óleo
+                        </label>
+
+                    </div>
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="filtro_ar"
+                            name="filtro_ar"
+                            class="form-check-input"
+                            {% if request.form.get('filtro_ar') == 'on' %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="filtro_ar"
+                            class="form-check-label"
+                        >
+                            Filtro de ar
+                        </label>
+
+                    </div>
+
+                    <div class="form-check">
+
+                        <input
+                            type="checkbox"
+                            id="filtro_combustivel"
+                            name="filtro_combustivel"
+                            class="form-check-input"
+                            {% if request.form.get('filtro_combustivel') == 'on' %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label
+                            for="filtro_combustivel"
+                            class="form-check-label"
+                        >
+                            Filtro de gasolina
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <p class="form-help mt-2">
+                    Selecione pelo menos um serviço realizado.
+                </p>
+
+            </section>
+
+            <section class="form-section">
+
+                <h3 class="form-section-title">
+                    Informações complementares
+                </h3>
+
+                <div class="form-group">
+
+                    <label
+                        for="observacoes"
+                        class="form-label"
+                    >
+                        Informações complementares
+                    </label>
+
+                    <textarea
+                        id="observacoes"
+                        name="observacoes"
+                        class="form-control"
+                        rows="4"
+                        placeholder="Observações importantes sobre o atendimento"
+                    >{{ request.form.get('observacoes', '') }}</textarea>
+
+                </div>
+
+            </section>
+
+        </div>
+
+        <div class="panel-footer">
 
             <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Fechar"
-            ></button>
-        </div>
-    {% endfor %}
-{% endwith %}
+                type="submit"
+                class="button button-primary ms-auto"
+            >
+                Salvar Ordem de Serviço / Agendar Notificação
+            </button>
 
-<form method="post" id="formOrdemServico">
+        </div>
+
+    </div>
+
+{% else %}
+
+    <!-- ========================================================= -->
+    <!-- CLIENTE                                                   -->
+    <!-- ========================================================= -->
 
     <div class="card system-card mb-4">
         <div class="card-header system-card-header">
@@ -91,25 +389,27 @@ Nova Ordem de Serviço
                 Cliente *
             </label>
 
-            <div class="input-group">
+            <div class="lookup-field">
                 <input
                     type="text"
                     id="cliente_nome"
                     class="form-control"
                     value="{{ cliente_selecionado.nome if cliente_selecionado else '' }}"
                     placeholder="Clique para selecionar um cliente"
+                    data-client-selection-url="{{ consulta_clientes_url }}"
+                    role="link"
                     readonly
                     required
                 >
 
-                <button
-                    type="button"
-                    class="btn btn-outline-primary"
+                <a
+                    href="{{ consulta_clientes_url }}"
+                    class="lookup-button"
                     id="abrirBuscaCliente"
                     aria-label="Pesquisar cliente"
                 >
                     &#128269;
-                </button>
+                </a>
             </div>
 
             <div
@@ -131,6 +431,10 @@ Nova Ordem de Serviço
         </div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- DADOS DO VEÍCULO                                          -->
+    <!-- ========================================================= -->
+
     <div class="card system-card mb-4">
         <div class="card-header system-card-header">
             <div>
@@ -147,8 +451,13 @@ Nova Ordem de Serviço
         <div class="card-body">
             <div class="row g-3">
 
+                <!-- PLACA -->
+
                 <div class="col-md-3">
-                    <label for="placa" class="form-label">
+                    <label
+                        for="placa"
+                        class="form-label"
+                    >
                         Placa *
                     </label>
 
@@ -157,15 +466,20 @@ Nova Ordem de Serviço
                         id="placa"
                         name="placa"
                         class="form-control text-uppercase"
-                        value="{{ ordem.placa if ordem else '' }}"
+                        value="{% if dados_formulario is not none %}{{ dados_formulario.get('placa', '') }}{% elif ordem %}{{ ordem.placa }}{% endif %}"
                         maxlength="10"
                         placeholder="ABC1D23"
                         required
                     >
                 </div>
 
+                <!-- MARCA -->
+
                 <div class="col-md-3">
-                    <label for="marca" class="form-label">
+                    <label
+                        for="marca"
+                        class="form-label"
+                    >
                         Marca *
                     </label>
 
@@ -174,15 +488,20 @@ Nova Ordem de Serviço
                         id="marca"
                         name="marca"
                         class="form-control"
-                        value="{{ ordem.marca if ordem else '' }}"
+                        value="{% if dados_formulario is not none %}{{ dados_formulario.get('marca', '') }}{% elif ordem %}{{ ordem.marca }}{% endif %}"
                         maxlength="50"
                         placeholder="Volkswagen"
                         required
                     >
                 </div>
 
+                <!-- MODELO -->
+
                 <div class="col-md-3">
-                    <label for="modelo" class="form-label">
+                    <label
+                        for="modelo"
+                        class="form-label"
+                    >
                         Modelo *
                     </label>
 
@@ -191,15 +510,20 @@ Nova Ordem de Serviço
                         id="modelo"
                         name="modelo"
                         class="form-control"
-                        value="{{ ordem.modelo if ordem else '' }}"
+                        value="{% if dados_formulario is not none %}{{ dados_formulario.get('modelo', '') }}{% elif ordem %}{{ ordem.modelo }}{% endif %}"
                         maxlength="80"
                         placeholder="Gol"
                         required
                     >
                 </div>
 
+                <!-- ANO -->
+
                 <div class="col-md-3">
-                    <label for="ano" class="form-label">
+                    <label
+                        for="ano"
+                        class="form-label"
+                    >
                         Ano
                     </label>
 
@@ -208,15 +532,20 @@ Nova Ordem de Serviço
                         id="ano"
                         name="ano"
                         class="form-control"
-                        value="{{ ordem.ano if ordem and ordem.ano else '' }}"
+                        value="{% if dados_formulario is not none and dados_formulario.get('ano') is not none %}{{ dados_formulario.get('ano') }}{% elif ordem and ordem.ano %}{{ ordem.ano }}{% endif %}"
                         min="1900"
                         max="2100"
                         placeholder="2018"
                     >
                 </div>
 
+                <!-- QUILOMETRAGEM -->
+
                 <div class="col-md-4">
-                    <label for="quilometragem" class="form-label">
+                    <label
+                        for="quilometragem"
+                        class="form-label"
+                    >
                         Quilometragem atual *
                     </label>
 
@@ -225,25 +554,43 @@ Nova Ordem de Serviço
                         id="quilometragem"
                         name="quilometragem"
                         class="form-control"
-                        value="{{ ordem.quilometragem if ordem else '' }}"
+                        value="{% if dados_formulario is not none and dados_formulario.get('quilometragem') is not none %}{{ dados_formulario.get('quilometragem') }}{% elif ordem %}{{ ordem.quilometragem }}{% endif %}"
                         min="0"
                         placeholder="85000"
                         required
                     >
+
+                    <div class="form-text">
+                        Informe a quilometragem registrada
+                        no momento do atendimento.
+                    </div>
                 </div>
 
+                <!-- DATA DO SERVIÇO -->
+
                 <div class="col-md-4">
-                    <label class="form-label">
-                        Data do serviço
+                    <label
+                        for="data_servico"
+                        class="form-label"
+                    >
+                        Data do serviço *
                     </label>
 
                     <input
-                        type="text"
+                        type="date"
+                        id="data_servico"
+                        name="data_servico"
                         class="form-control"
-                        value="{{ data_servico.strftime('%d/%m/%Y') }}"
-                        readonly
+                        value="{% if dados_formulario is not none and dados_formulario.get('data_servico') %}{{ dados_formulario.get('data_servico').isoformat() }}{% elif ordem and ordem.data_servico %}{{ ordem.data_servico.isoformat() }}{% elif data_servico %}{{ data_servico.isoformat() }}{% endif %}"
+                        required
                     >
+
+                    <div class="form-text">
+                        Informe a data em que a troca foi realizada.
+                    </div>
                 </div>
+
+                <!-- PRÓXIMA TROCA POR DATA -->
 
                 <div class="col-md-4">
                     <label class="form-label">
@@ -253,14 +600,29 @@ Nova Ordem de Serviço
                     <input
                         type="text"
                         class="form-control"
-                        value="{{ proxima_troca_data.strftime('%d/%m/%Y') }}"
+                        value="{% if ordem and ordem.proxima_troca_data %}{{ ordem.proxima_troca_data.strftime('%d/%m/%Y') }}{% endif %}"
+                        placeholder="Calculada automaticamente"
                         readonly
                     >
+
+                    <div class="form-text">
+                        {% if ordem %}
+                            Data prevista pelo sistema com base
+                            no histórico do veículo.
+                        {% else %}
+                            Será calculada automaticamente
+                            após o cadastro.
+                        {% endif %}
+                    </div>
                 </div>
 
             </div>
         </div>
     </div>
+
+    <!-- ========================================================= -->
+    <!-- SERVIÇO REALIZADO                                         -->
+    <!-- ========================================================= -->
 
     <div class="card system-card mb-4">
         <div class="card-header system-card-header">
@@ -277,6 +639,8 @@ Nova Ordem de Serviço
 
         <div class="card-body">
 
+            <!-- DESCRIÇÃO -->
+
             <div class="mb-3">
                 <label
                     for="descricao_servico"
@@ -290,7 +654,7 @@ Nova Ordem de Serviço
                     id="descricao_servico"
                     name="descricao_servico"
                     class="form-control"
-                    value="{{ ordem.descricao_servico if ordem else '' }}"
+                    value="{% if dados_formulario is not none %}{{ dados_formulario.get('descricao_servico', '') }}{% elif ordem %}{{ ordem.descricao_servico }}{% endif %}"
                     maxlength="150"
                     placeholder="Exemplo: troca de óleo e filtro"
                     required
@@ -298,6 +662,8 @@ Nova Ordem de Serviço
             </div>
 
             <div class="row g-3">
+
+                <!-- TIPO DE ÓLEO -->
 
                 <div class="col-md-8">
                     <label
@@ -312,11 +678,13 @@ Nova Ordem de Serviço
                         id="tipo_oleo"
                         name="tipo_oleo"
                         class="form-control"
-                        value="{{ ordem.tipo_oleo if ordem and ordem.tipo_oleo else '' }}"
+                        value="{% if dados_formulario is not none %}{{ dados_formulario.get('tipo_oleo') or '' }}{% elif ordem and ordem.tipo_oleo %}{{ ordem.tipo_oleo }}{% endif %}"
                         maxlength="100"
                         placeholder="Exemplo: 5W30 Sintético"
                     >
                 </div>
+
+                <!-- QUANTIDADE DE LITROS -->
 
                 <div class="col-md-4">
                     <label
@@ -331,7 +699,7 @@ Nova Ordem de Serviço
                         id="quantidade_litros"
                         name="quantidade_litros"
                         class="form-control"
-                        value="{{ ordem.quantidade_litros if ordem and ordem.quantidade_litros is not none else '' }}"
+                        value="{% if dados_formulario is not none and dados_formulario.get('quantidade_litros') is not none %}{{ dados_formulario.get('quantidade_litros') }}{% elif ordem and ordem.quantidade_litros is not none %}{{ ordem.quantidade_litros }}{% endif %}"
                         min="0"
                         step="0.1"
                         placeholder="4.5"
@@ -340,16 +708,27 @@ Nova Ordem de Serviço
 
             </div>
 
+            <!-- FILTROS -->
+
             <div class="row g-3 mt-1">
+
+                <!-- FILTRO DE ÓLEO -->
 
                 <div class="col-md-4">
                     <div class="form-check">
+
                         <input
                             type="checkbox"
                             id="filtro_oleo"
                             name="filtro_oleo"
                             class="form-check-input"
-                            {% if ordem and ordem.filtro_oleo %}checked{% endif %}
+                            {% if dados_formulario is not none %}
+                                {% if dados_formulario.get('filtro_oleo') %}
+                                    checked
+                                {% endif %}
+                            {% elif ordem and ordem.filtro_oleo %}
+                                checked
+                            {% endif %}
                         >
 
                         <label
@@ -361,14 +740,23 @@ Nova Ordem de Serviço
                     </div>
                 </div>
 
+                <!-- FILTRO DE AR -->
+
                 <div class="col-md-4">
                     <div class="form-check">
+
                         <input
                             type="checkbox"
                             id="filtro_ar"
                             name="filtro_ar"
                             class="form-check-input"
-                            {% if ordem and ordem.filtro_ar %}checked{% endif %}
+                            {% if dados_formulario is not none %}
+                                {% if dados_formulario.get('filtro_ar') %}
+                                    checked
+                                {% endif %}
+                            {% elif ordem and ordem.filtro_ar %}
+                                checked
+                            {% endif %}
                         >
 
                         <label
@@ -380,14 +768,23 @@ Nova Ordem de Serviço
                     </div>
                 </div>
 
+                <!-- FILTRO DE COMBUSTÍVEL -->
+
                 <div class="col-md-4">
                     <div class="form-check">
+
                         <input
                             type="checkbox"
                             id="filtro_combustivel"
                             name="filtro_combustivel"
                             class="form-check-input"
-                            {% if ordem and ordem.filtro_combustivel %}checked{% endif %}
+                            {% if dados_formulario is not none %}
+                                {% if dados_formulario.get('filtro_combustivel') %}
+                                    checked
+                                {% endif %}
+                            {% elif ordem and ordem.filtro_combustivel %}
+                                checked
+                            {% endif %}
                         >
 
                         <label
@@ -403,6 +800,31 @@ Nova Ordem de Serviço
         </div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- INFORMAÇÃO SOBRE A PREDIÇÃO                               -->
+    <!-- ========================================================= -->
+
+    <div
+        class="alert alert-info mb-4"
+        role="alert"
+    >
+        <strong>
+            Previsão automática:
+        </strong>
+
+        com menos de três registros de troca do veículo,
+        o sistema utiliza a regra padrão de seis meses.
+
+        A partir do terceiro registro, a data prevista
+        é calculada por Regressão Linear Simples,
+        utilizando o histórico de quilometragens
+        e datas da mesma placa.
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- INFORMAÇÕES COMPLEMENTARES                                -->
+    <!-- ========================================================= -->
+
     <div class="card system-card mb-4">
         <div class="card-header system-card-header">
             <div>
@@ -415,6 +837,8 @@ Nova Ordem de Serviço
         <div class="card-body">
             <div class="row g-3">
 
+                <!-- PRÓXIMA TROCA EM KM -->
+
                 <div class="col-md-5">
                     <label
                         for="proxima_troca_km"
@@ -424,15 +848,21 @@ Nova Ordem de Serviço
                     </label>
 
                     <input
-                        type="number"
+                        type="text"
                         id="proxima_troca_km"
-                        name="proxima_troca_km"
                         class="form-control"
-                        value="{{ ordem.proxima_troca_km if ordem and ordem.proxima_troca_km else '' }}"
-                        min="0"
-                        placeholder="Exemplo: 90000"
+                        value="{% if ordem and ordem.proxima_troca_km %}{{ '{:,}'.format(ordem.proxima_troca_km).replace(',', '.') }} km{% endif %}"
+                        placeholder="Calculada automaticamente"
+                        readonly
                     >
+
+                    <div class="form-text">
+                        O sistema soma 10.000 km à última
+                        quilometragem registrada.
+                    </div>
                 </div>
+
+                <!-- OBSERVAÇÕES -->
 
                 <div class="col-md-7">
                     <label
@@ -448,14 +878,19 @@ Nova Ordem de Serviço
                         class="form-control"
                         rows="4"
                         placeholder="Informações adicionais sobre o atendimento"
-                    >{{ ordem.observacoes if ordem and ordem.observacoes else '' }}</textarea>
+                    >{% if dados_formulario is not none %}{{ dados_formulario.get('observacoes') or '' }}{% elif ordem and ordem.observacoes %}{{ ordem.observacoes }}{% endif %}</textarea>
                 </div>
 
             </div>
         </div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- BOTÕES                                                    -->
+    <!-- ========================================================= -->
+
     <div class="d-flex justify-content-end gap-2 mb-4">
+
         <a
             href="{{ url_for('ordem_servico_web.listar') }}"
             class="btn btn-outline-secondary"
@@ -468,440 +903,22 @@ Nova Ordem de Serviço
             class="btn btn-primary"
         >
             {% if ordem %}
-            Salvar alterações
+                Salvar alterações
             {% else %}
-            Cadastrar ordem
+                Cadastrar ordem
             {% endif %}
         </button>
+
     </div>
+
+{% endif %}
 
 </form>
-
-<div
-    class="modal fade"
-    id="modalCliente"
-    tabindex="-1"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title">
-                        Selecionar cliente
-                    </h5>
-
-                    <small class="text-muted">
-                        Pesquise por nome, CPF/CNPJ ou WhatsApp.
-                    </small>
-                </div>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Fechar"
-                ></button>
-            </div>
-
-            <div class="modal-body">
-
-                <div id="areaBuscaCliente">
-
-                    <div class="input-group mb-3">
-                        <span class="input-group-text">
-                            &#128269;
-                        </span>
-
-                        <input
-                            type="text"
-                            id="buscaCliente"
-                            class="form-control"
-                            placeholder="Nome, CPF/CNPJ ou WhatsApp"
-                            autocomplete="off"
-                        >
-                    </div>
-
-                    <div
-                        id="resultadoClientes"
-                        class="mb-3"
-                    ></div>
-
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary"
-                        id="abrirCadastroRapido"
-                    >
-                        + Cadastrar Novo Cliente
-                    </button>
-
-                </div>
-
-                <div
-                    id="areaCadastroRapido"
-                    class="d-none"
-                >
-                    <h6 class="mb-3">
-                        Cadastro rápido de cliente
-                    </h6>
-
-                    <div class="mb-3">
-                        <label
-                            for="novoClienteNome"
-                            class="form-label"
-                        >
-                            Nome Completo *
-                        </label>
-
-                        <input
-                            type="text"
-                            id="novoClienteNome"
-                            class="form-control"
-                            maxlength="150"
-                            autocomplete="off"
-                        >
-                    </div>
-
-                    <div class="mb-3">
-                        <label
-                            for="novoClienteTelefone"
-                            class="form-label"
-                        >
-                            WhatsApp com DDD *
-                        </label>
-
-                        <input
-                            type="text"
-                            id="novoClienteTelefone"
-                            class="form-control"
-                            maxlength="20"
-                            autocomplete="off"
-                            placeholder="47999999999"
-                        >
-                    </div>
-
-                    <div
-                        id="erroCadastroCliente"
-                        class="alert alert-danger d-none"
-                    ></div>
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <button
-                            type="button"
-                            class="btn btn-outline-secondary"
-                            id="voltarBuscaCliente"
-                        >
-                            Voltar
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="salvarClienteRapido"
-                        >
-                            Salvar cliente
-                        </button>
-                    </div>
-
-                </div>
-
-                <div
-                    id="areaConfirmacaoCliente"
-                    class="d-none"
-                >
-                    <div class="alert alert-success">
-                        Cliente
-                        <strong id="nomeClienteConfirmacao"></strong>
-                        cadastrado com sucesso!
-                    </div>
-
-                    <p>
-                        Deseja selecioná-lo para esta Ordem de Serviço?
-                    </p>
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <button
-                            type="button"
-                            class="btn btn-outline-secondary"
-                            id="naoSelecionarCliente"
-                        >
-                            NÃO
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="simSelecionarCliente"
-                        >
-                            SIM
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 
 {% block scripts %}
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const modalElemento = document.getElementById("modalCliente");
-    const modalCliente = new bootstrap.Modal(modalElemento);
-
-    const clienteId = document.getElementById("cliente_id");
-    const clienteNome = document.getElementById("cliente_nome");
-
-    const abrirBuscaCliente = document.getElementById("abrirBuscaCliente");
-    const buscaCliente = document.getElementById("buscaCliente");
-    const resultadoClientes = document.getElementById("resultadoClientes");
-
-    const areaBuscaCliente = document.getElementById("areaBuscaCliente");
-    const areaCadastroRapido = document.getElementById("areaCadastroRapido");
-    const areaConfirmacaoCliente = document.getElementById("areaConfirmacaoCliente");
-
-    const abrirCadastroRapido = document.getElementById("abrirCadastroRapido");
-    const voltarBuscaCliente = document.getElementById("voltarBuscaCliente");
-    const salvarClienteRapido = document.getElementById("salvarClienteRapido");
-
-    const novoClienteNome = document.getElementById("novoClienteNome");
-    const novoClienteTelefone = document.getElementById("novoClienteTelefone");
-    const erroCadastroCliente = document.getElementById("erroCadastroCliente");
-
-    const nomeClienteConfirmacao = document.getElementById("nomeClienteConfirmacao");
-    const simSelecionarCliente = document.getElementById("simSelecionarCliente");
-    const naoSelecionarCliente = document.getElementById("naoSelecionarCliente");
-
-    const clienteSelecionadoInfo = document.getElementById("clienteSelecionadoInfo");
-    const clienteSelecionadoNome = document.getElementById("clienteSelecionadoNome");
-    const clienteSelecionadoTelefone = document.getElementById("clienteSelecionadoTelefone");
-
-    let clienteNovo = null;
-    let temporizadorBusca = null;
-
-    function mostrarBusca() {
-        areaBuscaCliente.classList.remove("d-none");
-        areaCadastroRapido.classList.add("d-none");
-        areaConfirmacaoCliente.classList.add("d-none");
-    }
-
-    function abrirModal() {
-        mostrarBusca();
-        modalCliente.show();
-
-        setTimeout(function () {
-            buscaCliente.focus();
-        }, 200);
-
-        buscarClientes();
-    }
-
-    function selecionarCliente(cliente) {
-        clienteId.value = cliente.id;
-        clienteNome.value = cliente.nome;
-
-        clienteSelecionadoNome.textContent = cliente.nome;
-        clienteSelecionadoTelefone.textContent = cliente.telefone || "-";
-
-        clienteSelecionadoInfo.classList.remove("d-none");
-
-        modalCliente.hide();
-    }
-
-    async function buscarClientes() {
-        const termo = buscaCliente.value.trim();
-
-        resultadoClientes.innerHTML =
-            '<div class="text-muted py-3">Buscando clientes...</div>';
-
-        try {
-            const resposta = await fetch(
-                "/clientes/busca?q=" + encodeURIComponent(termo)
-            );
-
-            if (!resposta.ok) {
-                throw new Error();
-            }
-
-            const dados = await resposta.json();
-
-            resultadoClientes.innerHTML = "";
-
-            if (!dados.clientes.length) {
-                resultadoClientes.innerHTML =
-                    '<div class="text-muted py-3">Nenhum cliente encontrado.</div>';
-                return;
-            }
-
-            dados.clientes.forEach(function (cliente) {
-                const item = document.createElement("div");
-
-                item.className =
-                    "border rounded p-3 mb-2 d-flex justify-content-between align-items-center gap-3";
-
-                const dadosCliente = document.createElement("div");
-
-                const nome = document.createElement("div");
-                nome.className = "fw-semibold";
-                nome.textContent = cliente.nome;
-
-                const detalhes = document.createElement("div");
-                detalhes.className = "text-muted small";
-
-                const informacoes = [];
-
-                if (cliente.cpf_cnpj) {
-                    informacoes.push(cliente.cpf_cnpj);
-                }
-
-                if (cliente.telefone) {
-                    informacoes.push(cliente.telefone);
-                }
-
-                detalhes.textContent = informacoes.join(" • ");
-
-                dadosCliente.appendChild(nome);
-                dadosCliente.appendChild(detalhes);
-
-                const botao = document.createElement("button");
-
-                botao.type = "button";
-                botao.className = "btn btn-sm btn-outline-primary";
-                botao.textContent = "Selecionar";
-
-                botao.addEventListener("click", function () {
-                    selecionarCliente(cliente);
-                });
-
-                item.appendChild(dadosCliente);
-                item.appendChild(botao);
-
-                resultadoClientes.appendChild(item);
-            });
-
-        } catch (erro) {
-            resultadoClientes.innerHTML =
-                '<div class="alert alert-danger">Não foi possível buscar os clientes.</div>';
-        }
-    }
-
-    abrirBuscaCliente.addEventListener("click", abrirModal);
-    clienteNome.addEventListener("click", abrirModal);
-
-    buscaCliente.addEventListener("input", function () {
-        clearTimeout(temporizadorBusca);
-
-        temporizadorBusca = setTimeout(function () {
-            buscarClientes();
-        }, 250);
-    });
-
-    abrirCadastroRapido.addEventListener("click", function () {
-        areaBuscaCliente.classList.add("d-none");
-        areaCadastroRapido.classList.remove("d-none");
-        areaConfirmacaoCliente.classList.add("d-none");
-
-        erroCadastroCliente.classList.add("d-none");
-        erroCadastroCliente.textContent = "";
-
-        setTimeout(function () {
-            novoClienteNome.focus();
-        }, 100);
-    });
-
-    voltarBuscaCliente.addEventListener("click", function () {
-        mostrarBusca();
-        buscaCliente.focus();
-        buscarClientes();
-    });
-
-    salvarClienteRapido.addEventListener("click", async function () {
-        const nome = novoClienteNome.value.trim();
-        const telefone = novoClienteTelefone.value.trim();
-
-        erroCadastroCliente.classList.add("d-none");
-        erroCadastroCliente.textContent = "";
-
-        if (!nome || !telefone) {
-            erroCadastroCliente.textContent =
-                "Informe o nome completo e o WhatsApp com DDD.";
-
-            erroCadastroCliente.classList.remove("d-none");
-            return;
-        }
-
-        salvarClienteRapido.disabled = true;
-        salvarClienteRapido.textContent = "Salvando...";
-
-        try {
-            const resposta = await fetch(
-                "/clientes/rapido",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        nome: nome,
-                        telefone: telefone
-                    })
-                }
-            );
-
-            const dados = await resposta.json();
-
-            if (!resposta.ok || !dados.sucesso) {
-                throw new Error(
-                    dados.mensagem || "Não foi possível cadastrar o cliente."
-                );
-            }
-
-            clienteNovo = dados.cliente;
-
-            nomeClienteConfirmacao.textContent = clienteNovo.nome;
-
-            areaBuscaCliente.classList.add("d-none");
-            areaCadastroRapido.classList.add("d-none");
-            areaConfirmacaoCliente.classList.remove("d-none");
-
-        } catch (erro) {
-            erroCadastroCliente.textContent = erro.message;
-            erroCadastroCliente.classList.remove("d-none");
-
-        } finally {
-            salvarClienteRapido.disabled = false;
-            salvarClienteRapido.textContent = "Salvar cliente";
-        }
-    });
-
-    simSelecionarCliente.addEventListener("click", function () {
-        if (!clienteNovo) {
-            return;
-        }
-
-        selecionarCliente(clienteNovo);
-
-        novoClienteNome.value = "";
-        novoClienteTelefone.value = "";
-        clienteNovo = null;
-    });
-
-    naoSelecionarCliente.addEventListener("click", function () {
-        novoClienteNome.value = "";
-        novoClienteTelefone.value = "";
-        clienteNovo = null;
-
-        mostrarBusca();
-
-        buscaCliente.value = "";
-        buscarClientes();
-        buscaCliente.focus();
-    });
-});
-</script>
-
+<script
+    src="{{ url_for('static', filename='js/ordens.js') }}"
+></script>
 {% endblock %}

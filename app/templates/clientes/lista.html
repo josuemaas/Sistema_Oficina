@@ -1,5 +1,18 @@
 {% extends "base.html" %}
 
+{% if modo == "selecionar" %}
+    {% if ordem_id %}
+        {% set retorno_ordem_url = url_for(
+            'ordem_servico_web.editar',
+            ordem_id=ordem_id
+        ) %}
+    {% else %}
+        {% set retorno_ordem_url = url_for(
+            'ordem_servico_web.cadastrar'
+        ) %}
+    {% endif %}
+{% endif %}
+
 {% block title %}
 {% if modo == "selecionar" %}
 Selecionar Cliente
@@ -48,19 +61,10 @@ Consulte e gerencie os clientes cadastrados na oficina.
 {% if modo == "selecionar" %}
 
 <a
-    href="{{ url_for('ordem_servico_web.cadastrar') }}"
+    href="{{ retorno_ordem_url }}"
     class="button button-neutral"
 >
     Retornar
-</a>
-
-{% else %}
-
-<a
-    href="{{ url_for('cliente_web.cadastrar') }}"
-    class="button button-primary"
->
-    Novo cliente
 </a>
 
 {% endif %}
@@ -81,7 +85,7 @@ Consulte e gerencie os clientes cadastrados na oficina.
                 </h2>
 
                 <p class="panel-description">
-                    Informe o nome, telefone ou e-mail do cliente.
+                    Consulte por nome, CPF ou telefone.
                 </p>
 
             </div>
@@ -104,7 +108,62 @@ Consulte e gerencie os clientes cadastrados na oficina.
                         value="selecionar"
                     >
 
+                    {% if ordem_id %}
+
+                        <input
+                            type="hidden"
+                            name="ordem_id"
+                            value="{{ ordem_id }}"
+                        >
+
+                    {% endif %}
+
                 {% endif %}
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="tipo_pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar por
+                    </label>
+
+                    <select
+                        id="tipo_pesquisa"
+                        name="tipo_pesquisa"
+                        class="form-select"
+                        data-client-search-type
+                    >
+                        <option
+                            value="nome"
+                            {% if tipo_pesquisa == "nome" %}
+                                selected
+                            {% endif %}
+                        >
+                            Nome
+                        </option>
+
+                        <option
+                            value="cpf"
+                            {% if tipo_pesquisa == "cpf" %}
+                                selected
+                            {% endif %}
+                        >
+                            CPF
+                        </option>
+
+                        <option
+                            value="telefone"
+                            {% if tipo_pesquisa == "telefone" %}
+                                selected
+                            {% endif %}
+                        >
+                            Telefone
+                        </option>
+                    </select>
+
+                </div>
 
                 <div class="page-search-field">
 
@@ -112,7 +171,7 @@ Consulte e gerencie os clientes cadastrados na oficina.
                         for="pesquisa"
                         class="form-label"
                     >
-                        Pesquisar cliente
+                        Termo
                     </label>
 
                     <input
@@ -121,8 +180,9 @@ Consulte e gerencie os clientes cadastrados na oficina.
                         name="pesquisa"
                         class="form-control"
                         value="{{ pesquisa or '' }}"
-                        placeholder="Nome, telefone ou e-mail"
+                        placeholder="Digite o termo para consulta"
                         autocomplete="off"
+                        data-client-search-term
                     >
 
                 </div>
@@ -133,7 +193,11 @@ Consulte e gerencie os clientes cadastrados na oficina.
                         type="submit"
                         class="button button-primary"
                     >
-                        Pesquisar
+                        <span aria-hidden="true">
+                            &#128269;
+                        </span>
+
+                        Consultar
                     </button>
 
                     {% if pesquisa %}
@@ -141,7 +205,10 @@ Consulte e gerencie os clientes cadastrados na oficina.
                         <a
                             href="{{ url_for(
                                 'cliente_web.listar',
-                                modo=modo
+                                modo=modo,
+                                ordem_id=ordem_id
+                            ) if modo == 'selecionar' else url_for(
+                                'cliente_web.listar'
                             ) }}"
                             class="button button-neutral"
                         >
@@ -188,6 +255,65 @@ Consulte e gerencie os clientes cadastrados na oficina.
 
             <div class="panel-actions">
 
+                <div
+                    class="toolbar-actions"
+                    role="toolbar"
+                    aria-label="Ações de clientes"
+                >
+
+                    {% if modo == "selecionar" %}
+
+                        <a
+                            href="{{ url_for(
+                                'cliente_web.cadastrar',
+                                modo='selecionar',
+                                ordem_id=ordem_id
+                            ) }}"
+                            class="button button-primary button-small"
+                        >
+                            + Incluir
+                        </a>
+
+                        <button
+                            type="button"
+                            class="button button-secondary button-small"
+                            id="acaoSelecionarCliente"
+                            disabled
+                        >
+                            Selecionar
+                        </button>
+
+                    {% else %}
+
+                        <a
+                            href="{{ url_for('cliente_web.cadastrar') }}"
+                            class="button button-primary button-small"
+                        >
+                            + Incluir
+                        </a>
+
+                        <button
+                            type="button"
+                            class="button button-secondary button-small"
+                            id="acaoAlterarCliente"
+                            disabled
+                        >
+                            Alterar
+                        </button>
+
+                        <button
+                            type="button"
+                            class="button button-secondary button-small"
+                            id="acaoVisualizarCliente"
+                            disabled
+                        >
+                            Visualizar
+                        </button>
+
+                    {% endif %}
+
+                </div>
+
                 <span class="badge badge-neutral">
                     {{ clientes|length }}
 
@@ -211,28 +337,30 @@ Consulte e gerencie os clientes cadastrados na oficina.
                     <thead>
 
                         <tr>
+                            <th class="column-select">
+                                <span class="visually-hidden">
+                                    Selecionar
+                                </span>
+                            </th>
+
                             <th class="column-id">
                                 Código
                             </th>
 
                             <th>
-                                Nome
+                                Nome/Razão Social
+                            </th>
+
+                            <th>
+                                CPF
                             </th>
 
                             <th>
                                 Telefone
                             </th>
 
-                            <th>
-                                E-mail
-                            </th>
-
                             <th class="column-status">
-                                Status
-                            </th>
-
-                            <th class="column-actions">
-                                Ações
+                                Situação
                             </th>
                         </tr>
 
@@ -242,7 +370,38 @@ Consulte e gerencie os clientes cadastrados na oficina.
 
                         {% for cliente in clientes %}
 
-                            <tr>
+                            <tr data-cliente-row>
+
+                                <td class="column-select">
+
+                                    <input
+                                        type="checkbox"
+                                        class="table-selection"
+                                        data-cliente-selection
+                                        data-cliente-ativo="{{ 'true' if cliente.ativo else 'false' }}"
+                                        data-url-alterar="{{ url_for(
+                                            'cliente_web.editar',
+                                            cliente_id=cliente.id
+                                        ) }}"
+                                        data-url-visualizar="{{ url_for(
+                                            'cliente_web.detalhes',
+                                            cliente_id=cliente.id
+                                        ) }}"
+                                        data-url-selecionar="{{ url_for(
+                                            'ordem_servico_web.editar',
+                                            ordem_id=ordem_id,
+                                            cliente_id=cliente.id
+                                        ) if ordem_id else url_for(
+                                            'ordem_servico_web.cadastrar',
+                                            cliente_id=cliente.id
+                                        ) }}"
+                                        aria-label="{% if modo == 'selecionar' and not cliente.ativo %}Cliente {{ cliente.nome }} indisponível para seleção{% else %}Selecionar cliente {{ cliente.nome }}{% endif %}"
+                                        {% if modo == "selecionar" and not cliente.ativo %}
+                                            disabled
+                                        {% endif %}
+                                    >
+
+                                </td>
 
                                 <td>
                                     {{ cliente.id }}
@@ -265,11 +424,25 @@ Consulte e gerencie os clientes cadastrados na oficina.
                                 </td>
 
                                 <td>
-                                    {{ cliente.telefone }}
+
+                                    {% if cliente.cpf_cnpj %}
+
+                                        <span data-mask-text="cpf-cnpj">
+                                            {{ cliente.cpf_cnpj }}
+                                        </span>
+
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
                                 </td>
 
                                 <td>
-                                    {{ cliente.email or "-" }}
+
+                                    <span data-mask-text="telefone">
+                                        {{ cliente.telefone }}
+                                    </span>
+
                                 </td>
 
                                 <td>
@@ -287,64 +460,6 @@ Consulte e gerencie os clientes cadastrados na oficina.
                                         </span>
 
                                     {% endif %}
-
-                                </td>
-
-                                <td class="column-actions">
-
-                                    <div class="table-actions">
-
-                                        {% if modo == "selecionar" %}
-
-                                            {% if cliente.ativo %}
-
-                                                <a
-                                                    href="{{ url_for(
-                                                        'ordem_servico_web.cadastrar',
-                                                        cliente_id=cliente.id
-                                                    ) }}"
-                                                    class="table-action"
-                                                >
-                                                    Selecionar
-                                                </a>
-
-                                            {% else %}
-
-                                                <span class="table-secondary-text">
-                                                    Indisponível
-                                                </span>
-
-                                            {% endif %}
-
-                                        {% else %}
-
-                                            <a
-                                                href="{{ url_for(
-                                                    'cliente_web.detalhes',
-                                                    cliente_id=cliente.id
-                                                ) }}"
-                                                class="table-action"
-                                            >
-                                                Visualizar
-                                            </a>
-
-                                            <span class="table-action-separator">
-                                                |
-                                            </span>
-
-                                            <a
-                                                href="{{ url_for(
-                                                    'cliente_web.editar',
-                                                    cliente_id=cliente.id
-                                                ) }}"
-                                                class="table-action"
-                                            >
-                                                Alterar
-                                            </a>
-
-                                        {% endif %}
-
-                                    </div>
 
                                 </td>
 
@@ -383,17 +498,6 @@ Consulte e gerencie os clientes cadastrados na oficina.
                     Verifique os dados pesquisados ou cadastre um novo cliente.
                 </p>
 
-                {% if modo != "selecionar" %}
-
-                    <a
-                        href="{{ url_for('cliente_web.cadastrar') }}"
-                        class="button button-primary"
-                    >
-                        Novo cliente
-                    </a>
-
-                {% endif %}
-
             </div>
 
         {% endif %}
@@ -402,4 +506,10 @@ Consulte e gerencie os clientes cadastrados na oficina.
 
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script
+    src="{{ url_for('static', filename='js/clientes.js') }}"
+></script>
 {% endblock %}

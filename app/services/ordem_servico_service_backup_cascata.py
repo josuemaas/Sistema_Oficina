@@ -10,9 +10,6 @@ from app.services.notificacao_service import (
 from app.services.predicao_service import (
     PredicaoService,
 )
-from app.services.validacao_historico_service import (
-    ValidacaoHistoricoService,
-)
 
 
 class OrdemServicoService:
@@ -175,10 +172,7 @@ class OrdemServicoService:
 
     @staticmethod
     def listar_ordens():
-        return (
-            OrdemServicoRepository
-            .listar()
-        )
+        return OrdemServicoRepository.listar()
 
     @staticmethod
     def buscar_por_id(
@@ -196,12 +190,6 @@ class OrdemServicoService:
         placa: str,
         ordem_atual: OrdemServico,
     ):
-        """
-        Calcula a previsão de uma ordem utilizando
-        todas as revisões disponíveis até a data
-        daquela ordem.
-        """
-
         if ordem_atual.data_servico is None:
             raise ValueError(
                 "A ordem precisa possuir "
@@ -246,132 +234,6 @@ class OrdemServicoService:
             )
 
         return resultado
-
-    @staticmethod
-    def recalcular_historico_placa(
-        placa: str,
-    ):
-        """
-        Recalcula todas as previsões de uma placa
-        em ordem cronológica.
-
-        Cada revisão utiliza todo o histórico
-        disponível até aquele atendimento.
-
-        Exemplo:
-
-        revisão 1 -> [1]
-        revisão 2 -> [1, 2]
-        revisão 3 -> [1, 2, 3]
-        revisão 4 -> [1, 2, 3, 4]
-        """
-
-        if not placa:
-            return []
-
-        placa_normalizada = (
-            placa.strip().upper()
-        )
-
-        ordens = (
-            OrdemServicoRepository
-            .buscar_historico_por_placa(
-                placa_normalizada
-            )
-        )
-
-        if not ordens:
-            return []
-
-        historico_acumulado = []
-        resultados = []
-
-        for ordem in ordens:
-            historico_acumulado.append(
-                ordem
-            )
-
-            resultado = (
-                PredicaoService.calcular(
-                    historico_acumulado
-                )
-            )
-
-            if resultado is None:
-                raise ValueError(
-                    "Não foi possível recalcular "
-                    "o histórico do veículo."
-                )
-
-            ordem.proxima_troca_km = (
-                resultado[
-                    "proxima_troca_km"
-                ]
-            )
-
-            ordem.proxima_troca_data = (
-                resultado[
-                    "proxima_troca_data"
-                ]
-            )
-
-            resultados.append(
-                {
-                    "ordem_id": ordem.id,
-                    "data_servico": (
-                        ordem.data_servico
-                    ),
-                    "quilometragem": (
-                        ordem.quilometragem
-                    ),
-                    "metodo": (
-                        resultado[
-                            "metodo"
-                        ]
-                    ),
-                    "quantidade_registros": (
-                        resultado[
-                            "quantidade_registros"
-                        ]
-                    ),
-                    "proxima_troca_km": (
-                        resultado[
-                            "proxima_troca_km"
-                        ]
-                    ),
-                    "proxima_troca_data": (
-                        resultado[
-                            "proxima_troca_data"
-                        ]
-                    ),
-                    "inclinacao": (
-                        resultado[
-                            "inclinacao"
-                        ]
-                    ),
-                    "intersecao": (
-                        resultado[
-                            "intersecao"
-                        ]
-                    ),
-                    "km_por_dia": (
-                        resultado[
-                            "km_por_dia"
-                        ]
-                    ),
-                }
-            )
-
-        OrdemServicoRepository.flush()
-
-        NotificacaoService \
-            .sincronizar_historico_placa(
-                placa_normalizada
-            )
-
-        OrdemServicoRepository.flush()
-
-        return resultados
 
     @staticmethod
     def cadastrar_ordem(
@@ -419,9 +281,7 @@ class OrdemServicoService:
         quilometragem = (
             OrdemServicoService
             ._converter_int(
-                dados.get(
-                    "quilometragem"
-                ),
+                dados.get("quilometragem"),
                 "quilometragem",
             )
         )
@@ -473,14 +333,6 @@ class OrdemServicoService:
             )
         )
 
-        # Valida a consistência do novo registro
-        # antes de criar a ordem.
-        ValidacaoHistoricoService.validar(
-            placa=placa,
-            data_servico=data_servico,
-            quilometragem=quilometragem,
-        )
-
         ordem = OrdemServico(
             cliente_id=cliente_id,
             placa=placa,
@@ -501,18 +353,14 @@ class OrdemServicoService:
             filtro_oleo=(
                 OrdemServicoService
                 ._normalizar_booleano(
-                    dados.get(
-                        "filtro_oleo"
-                    ),
+                    dados.get("filtro_oleo"),
                     "filtro_oleo",
                 )
             ),
             filtro_ar=(
                 OrdemServicoService
                 ._normalizar_booleano(
-                    dados.get(
-                        "filtro_ar"
-                    ),
+                    dados.get("filtro_ar"),
                     "filtro_ar",
                 )
             ),
@@ -526,14 +374,30 @@ class OrdemServicoService:
                 )
             ),
             proxima_troca_km=None,
-            proxima_troca_data=(
-                data_servico
-            ),
+            proxima_troca_data=data_servico,
             observacoes=(
-                dados.get(
-                    "observacoes"
-                )
+                dados.get("observacoes")
             ),
+        )
+
+        resultado_predicao = (
+            OrdemServicoService
+            .calcular_previsao(
+                placa,
+                ordem,
+            )
+        )
+
+        ordem.proxima_troca_km = (
+            resultado_predicao[
+                "proxima_troca_km"
+            ]
+        )
+
+        ordem.proxima_troca_data = (
+            resultado_predicao[
+                "proxima_troca_data"
+            ]
         )
 
         try:
@@ -541,12 +405,9 @@ class OrdemServicoService:
                 ordem
             )
 
-            OrdemServicoRepository.flush()
-
-            OrdemServicoService \
-                .recalcular_historico_placa(
-                    placa
-                )
+            NotificacaoService.criar_para_ordem(
+                ordem
+            )
 
             OrdemServicoRepository.confirmar()
 
@@ -577,93 +438,23 @@ class OrdemServicoService:
         if ordem is None:
             return None
 
-        placa_anterior = (
-            ordem.placa.strip().upper()
-        )
-
-        # -------------------------------------------------
-        # Valores propostos
-        # -------------------------------------------------
-        # Antes de alterar a ordem em memória, calculamos
-        # como ela ficará depois da edição.
-        # Isso permite validar o histórico antes de salvar.
-        # -------------------------------------------------
-
-        placa_proposta = (
-            dados.get(
-                "placa",
-                ordem.placa,
-            )
-        )
-
-        placa_proposta = (
-            OrdemServicoService
-            ._normalizar_texto(
-                placa_proposta,
-                "placa",
-            )
-            .upper()
-        )
-
-        data_proposta = (
-            OrdemServicoService
-            ._converter_data(
-                dados.get(
-                    "data_servico",
-                    ordem.data_servico,
-                ),
-                "data_servico",
-            )
-        )
-
-        quilometragem_proposta = (
-            OrdemServicoService
-            ._converter_int(
-                dados.get(
-                    "quilometragem",
-                    ordem.quilometragem,
-                ),
-                "quilometragem",
-            )
-        )
-
-        if quilometragem_proposta < 0:
-            raise ValueError(
-                "A quilometragem não pode "
-                "ser negativa."
-            )
-
-        # Valida a edição ignorando a própria
-        # ordem que está sendo alterada.
-        ValidacaoHistoricoService.validar(
-            placa=placa_proposta,
-            data_servico=data_proposta,
-            quilometragem=(
-                quilometragem_proposta
-            ),
-            ordem_id_ignorar=(
-                ordem.id
-            ),
-        )
-
-        # -------------------------------------------------
-        # Atualização dos dados
-        # -------------------------------------------------
-
         if "cliente_id" in dados:
             ordem.cliente_id = (
                 OrdemServicoService
                 ._converter_int(
-                    dados[
-                        "cliente_id"
-                    ],
+                    dados["cliente_id"],
                     "cliente_id",
                 )
             )
 
         if "placa" in dados:
             ordem.placa = (
-                placa_proposta
+                OrdemServicoService
+                ._normalizar_texto(
+                    dados["placa"],
+                    "placa",
+                )
+                .upper()
             )
 
         if "marca" in dados:
@@ -696,13 +487,27 @@ class OrdemServicoService:
 
         if "data_servico" in dados:
             ordem.data_servico = (
-                data_proposta
+                OrdemServicoService
+                ._converter_data(
+                    dados["data_servico"],
+                    "data_servico",
+                )
             )
 
         if "quilometragem" in dados:
             ordem.quilometragem = (
-                quilometragem_proposta
+                OrdemServicoService
+                ._converter_int(
+                    dados["quilometragem"],
+                    "quilometragem",
+                )
             )
+
+            if ordem.quilometragem < 0:
+                raise ValueError(
+                    "A quilometragem não pode "
+                    "ser negativa."
+                )
 
         if "descricao_servico" in dados:
             ordem.descricao_servico = (
@@ -717,9 +522,7 @@ class OrdemServicoService:
 
         if "tipo_oleo" in dados:
             ordem.tipo_oleo = (
-                dados[
-                    "tipo_oleo"
-                ]
+                dados["tipo_oleo"]
             )
 
         if "quantidade_litros" in dados:
@@ -738,9 +541,7 @@ class OrdemServicoService:
             ordem.filtro_oleo = (
                 OrdemServicoService
                 ._normalizar_booleano(
-                    dados[
-                        "filtro_oleo"
-                    ],
+                    dados["filtro_oleo"],
                     "filtro_oleo",
                 )
             )
@@ -749,9 +550,7 @@ class OrdemServicoService:
             ordem.filtro_ar = (
                 OrdemServicoService
                 ._normalizar_booleano(
-                    dados[
-                        "filtro_ar"
-                    ],
+                    dados["filtro_ar"],
                     "filtro_ar",
                 )
             )
@@ -769,38 +568,35 @@ class OrdemServicoService:
 
         if "observacoes" in dados:
             ordem.observacoes = (
-                dados[
-                    "observacoes"
-                ]
+                dados["observacoes"]
             )
 
-        placa_atual = (
-            ordem.placa.strip().upper()
+        resultado_predicao = (
+            OrdemServicoService
+            .calcular_previsao(
+                ordem.placa,
+                ordem,
+            )
+        )
+
+        ordem.proxima_troca_km = (
+            resultado_predicao[
+                "proxima_troca_km"
+            ]
+        )
+
+        ordem.proxima_troca_data = (
+            resultado_predicao[
+                "proxima_troca_data"
+            ]
         )
 
         try:
-            OrdemServicoRepository.flush()
+            NotificacaoService.sincronizar_com_ordem(
+                ordem
+            )
 
-            # Se a placa foi alterada,
-            # recalculamos também o histórico
-            # da placa antiga.
-            if (
-                placa_anterior
-                != placa_atual
-            ):
-                OrdemServicoService \
-                    .recalcular_historico_placa(
-                        placa_anterior
-                    )
-
-            # Recalcula todas as revisões
-            # da placa atual.
-            OrdemServicoService \
-                .recalcular_historico_placa(
-                    placa_atual
-                )
-
-            OrdemServicoRepository.confirmar()
+            OrdemServicoRepository.atualizar()
 
             return ordem
 
@@ -822,30 +618,8 @@ class OrdemServicoService:
         if ordem is None:
             return None
 
-        placa = (
-            ordem.placa.strip().upper()
+        OrdemServicoRepository.excluir(
+            ordem
         )
 
-        try:
-            OrdemServicoRepository.remover(
-                ordem
-            )
-
-            OrdemServicoRepository.flush()
-
-            # A exclusão também altera o conjunto
-            # histórico utilizado pela regressão.
-            # Por isso, todas as previsões restantes
-            # dessa placa precisam ser recalculadas.
-            OrdemServicoService \
-                .recalcular_historico_placa(
-                    placa
-                )
-
-            OrdemServicoRepository.confirmar()
-
-            return True
-
-        except Exception:
-            OrdemServicoRepository.desfazer()
-            raise
+        return True

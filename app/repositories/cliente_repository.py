@@ -1,4 +1,4 @@
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 
 from app.extensions import db
 from app.models.cliente import Cliente
@@ -62,9 +62,42 @@ class ClienteRepository:
         if not cpf_cnpj:
             return None
 
+        cpf_cnpj_normalizado = "".join(
+            caractere
+            for caractere in cpf_cnpj
+            if caractere.isdigit()
+        )
+
+        if not cpf_cnpj_normalizado:
+            return (
+                Cliente.query
+                .filter(
+                    Cliente.cpf_cnpj
+                    == cpf_cnpj
+                )
+                .first()
+            )
+
+        valor_normalizado = Cliente.cpf_cnpj
+
+        for caractere in (
+            ".",
+            "-",
+            "/",
+            " ",
+        ):
+            valor_normalizado = func.replace(
+                valor_normalizado,
+                caractere,
+                "",
+            )
+
         return (
             Cliente.query
-            .filter(Cliente.cpf_cnpj == cpf_cnpj)
+            .filter(
+                valor_normalizado
+                == cpf_cnpj_normalizado
+            )
             .first()
         )
 

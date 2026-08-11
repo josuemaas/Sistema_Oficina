@@ -29,15 +29,11 @@ class OrdemServicoRepository:
     def buscar_historico_por_placa(
         placa: str,
     ):
-        placa_normalizada = (
-            placa.strip().upper()
-        )
-
         return (
             OrdemServico.query
             .filter(
                 OrdemServico.placa
-                == placa_normalizada
+                == placa.strip().upper()
             )
             .order_by(
                 OrdemServico.data_servico.asc(),
@@ -52,15 +48,11 @@ class OrdemServicoRepository:
         data_limite: date,
         ordem_id_ignorar: int | None = None,
     ):
-        placa_normalizada = (
-            placa.strip().upper()
-        )
-
         consulta = (
             OrdemServico.query
             .filter(
                 OrdemServico.placa
-                == placa_normalizada,
+                == placa.strip().upper(),
                 OrdemServico.data_servico
                 <= data_limite,
             )
@@ -92,25 +84,6 @@ class OrdemServicoRepository:
         db.session.flush()
 
         return ordem
-
-    @staticmethod
-    def remover(
-        ordem: OrdemServico,
-    ):
-        if ordem.notificacao is not None:
-            db.session.delete(
-                ordem.notificacao
-            )
-
-        db.session.delete(
-            ordem
-        )
-
-        db.session.flush()
-
-    @staticmethod
-    def flush():
-        db.session.flush()
 
     @staticmethod
     def salvar(
@@ -156,7 +129,12 @@ class OrdemServicoRepository:
         ordem: OrdemServico,
     ):
         try:
-            OrdemServicoRepository.remover(
+            if ordem.notificacao is not None:
+                db.session.delete(
+                    ordem.notificacao
+                )
+
+            db.session.delete(
                 ordem
             )
 

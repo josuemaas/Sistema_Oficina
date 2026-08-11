@@ -58,28 +58,6 @@ Detalhes do Cliente
 
 </div>
 
-{% with mensagens = get_flashed_messages(
-    with_categories=true
-) %}
-    {% for categoria, mensagem in mensagens %}
-
-        <div
-            class="alert alert-{{ categoria }}
-                   alert-dismissible fade show"
-            role="alert"
-        >
-            {{ mensagem }}
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-            ></button>
-        </div>
-
-    {% endfor %}
-{% endwith %}
-
 <div class="card system-card mb-4">
 
     <div class="card-header system-card-header">
@@ -122,11 +100,29 @@ Detalhes do Cliente
 
             <div class="col-md-4">
                 <span class="text-muted small">
+                    CPF
+                </span>
+
+                <p class="mb-0">
+                    {% if cliente.cpf_cnpj %}
+                        <span data-mask-text="cpf-cnpj">
+                            {{ cliente.cpf_cnpj }}
+                        </span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="col-md-4">
+                <span class="text-muted small">
                     Telefone
                 </span>
 
                 <p class="mb-0">
-                    {{ cliente.telefone }}
+                    <span data-mask-text="telefone">
+                        {{ cliente.telefone }}
+                    </span>
                 </p>
             </div>
 
@@ -525,4 +521,10 @@ Detalhes do Cliente
 
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script
+    src="{{ url_for('static', filename='js/clientes.js') }}"
+></script>
 {% endblock %}

@@ -4,83 +4,357 @@
 Ordens de Serviço | Sistema da Oficina
 {% endblock %}
 
+{% block breadcrumb %}
+<a
+    href="{{ url_for('dashboard_web.index') }}"
+    class="breadcrumb-link"
+>
+    Início
+</a>
+
+<span>›</span>
+
+<span>
+    Ordens de Serviço
+</span>
+{% endblock %}
+
+{% block page_title %}
+Ordens de Serviço
+{% endblock %}
+
+{% block page_description %}
+Consulte e gerencie os serviços realizados nos veículos.
+{% endblock %}
+
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h2 mb-1">
-            Ordens de Serviço
-        </h1>
+<div class="page-section">
 
-        <p class="text-muted mb-0">
-            Consulte e gerencie os serviços realizados nos veículos.
-        </p>
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div class="panel-header-content">
+
+                <h2 class="panel-title">
+                    Pesquisa
+                </h2>
+
+                <p class="panel-description">
+                    Consulte por cliente, telefone, placa, marca ou modelo.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel-body">
+
+            <form
+                method="get"
+                action="{{ url_for('ordem_servico_web.listar') }}"
+                class="page-search"
+            >
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="tipo_pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar por
+                    </label>
+
+                    <select
+                        id="tipo_pesquisa"
+                        name="tipo_pesquisa"
+                        class="form-select"
+                        data-order-search-type
+                    >
+                        <option
+                            value="cliente"
+                            {% if tipo_pesquisa == "cliente" %}
+                                selected
+                            {% endif %}
+                        >
+                            Cliente
+                        </option>
+
+                        <option
+                            value="telefone"
+                            {% if tipo_pesquisa == "telefone" %}
+                                selected
+                            {% endif %}
+                        >
+                            Telefone
+                        </option>
+
+                        <option
+                            value="placa"
+                            {% if tipo_pesquisa == "placa" %}
+                                selected
+                            {% endif %}
+                        >
+                            Placa
+                        </option>
+
+                        <option
+                            value="marca"
+                            {% if tipo_pesquisa == "marca" %}
+                                selected
+                            {% endif %}
+                        >
+                            Marca
+                        </option>
+
+                        <option
+                            value="modelo"
+                            {% if tipo_pesquisa == "modelo" %}
+                                selected
+                            {% endif %}
+                        >
+                            Modelo
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="page-search-field">
+
+                    <label
+                        for="pesquisa"
+                        class="form-label"
+                    >
+                        Termo
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Digite o termo para consulta"
+                        autocomplete="off"
+                        data-order-search-term
+                    >
+
+                </div>
+
+                <div class="page-search-actions">
+
+                    <button
+                        type="submit"
+                        class="button button-primary"
+                    >
+                        <span aria-hidden="true">
+                            &#128269;
+                        </span>
+
+                        Consultar
+                    </button>
+
+                    {% if pesquisa %}
+
+                        <a
+                            href="{{ url_for('ordem_servico_web.listar') }}"
+                            class="button button-neutral"
+                        >
+                            Limpar
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
 
-    <a
-        href="{{ url_for('ordem_servico_web.cadastrar') }}"
-        class="btn btn-warning"
-    >
-        + Nova ordem
-    </a>
 </div>
 
-{% with mensagens = get_flashed_messages(with_categories=true) %}
-    {% for categoria, mensagem in mensagens %}
-        <div
-            class="alert alert-{{ categoria }} alert-dismissible fade show"
-            role="alert"
-        >
-            {{ mensagem }}
+<div class="page-section">
 
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Fechar"
-            ></button>
+<div class="panel">
+
+    <div class="panel-header">
+
+        <div class="panel-header-content">
+
+            <h2 class="panel-title">
+                Ordens cadastradas
+            </h2>
+
+            <p class="panel-description">
+                {% if pesquisa %}
+                    Resultado da pesquisa por “{{ pesquisa }}”.
+                {% else %}
+                    Relação de ordens registradas no sistema.
+                {% endif %}
+            </p>
+
         </div>
-    {% endfor %}
-{% endwith %}
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        {% if ordens %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+        <div class="panel-actions">
+
+            <div
+                class="toolbar-actions"
+                role="toolbar"
+                aria-label="Ações de ordens de serviço"
+            >
+
+                <a
+                    href="{{ url_for('ordem_servico_web.cadastrar') }}"
+                    class="button button-primary button-small"
+                >
+                    + Incluir
+                </a>
+
+                <button
+                    type="button"
+                    class="button button-secondary button-small"
+                    id="acaoAlterarOrdem"
+                    disabled
+                >
+                    Alterar
+                </button>
+
+                <button
+                    type="button"
+                    class="button button-secondary button-small"
+                    id="acaoVisualizarOrdem"
+                    disabled
+                >
+                    Visualizar
+                </button>
+
+                <button
+                    type="button"
+                    class="button button-danger button-small"
+                    id="acaoExcluirOrdem"
+                    disabled
+                >
+                    Excluir
+                </button>
+
+            </div>
+
+            <span class="badge badge-neutral">
+                {{ ordens|length }}
+
+                {% if ordens|length == 1 %}
+                    registro
+                {% else %}
+                    registros
+                {% endif %}
+            </span>
+
+        </div>
+
+    </div>
+
+    <form
+        method="post"
+        id="formExcluirOrdem"
+        hidden
+    ></form>
+
+    {% if ordens %}
+
+        <div class="table-container">
+
+            <table class="system-table">
+
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Veículo</th>
-                            <th>Data</th>
-                            <th>Quilometragem</th>
-                            <th>Serviço</th>
-                            <th>Próxima troca</th>
-                            <th class="text-end">Ações</th>
+                            <th class="column-select">
+                                <span class="visually-hidden">
+                                    Selecionar
+                                </span>
+                            </th>
+
+                            <th>
+                                ID
+                            </th>
+
+                            <th>
+                                Veículo
+                            </th>
+
+                            <th>
+                                Data
+                            </th>
+
+                            <th>
+                                Quilometragem
+                            </th>
+
+                            <th>
+                                Serviço
+                            </th>
+
+                            <th>
+                                Próxima troca
+                            </th>
                         </tr>
                     </thead>
 
                     <tbody>
+
                         {% for ordem in ordens %}
-                            <tr>
+
+                            <tr data-ordem-row>
+
+                                <td class="column-select">
+
+                                    <input
+                                        type="checkbox"
+                                        class="table-selection"
+                                        data-ordem-selection
+                                        data-url-alterar="{{ url_for(
+                                            'ordem_servico_web.editar',
+                                            ordem_id=ordem.id
+                                        ) }}"
+                                        data-url-visualizar="{{ url_for(
+                                            'ordem_servico_web.detalhes',
+                                            ordem_id=ordem.id
+                                        ) }}"
+                                        data-url-excluir="{{ url_for(
+                                            'ordem_servico_web.excluir',
+                                            ordem_id=ordem.id
+                                        ) }}"
+                                        aria-label="Selecionar ordem {{ ordem.id }}"
+                                    >
+
+                                </td>
+
                                 <td>
                                     {{ ordem.id }}
                                 </td>
 
                                 <td>
-                                    {% if ordem.veiculo %}
-                                        <strong>
-                                            {{ ordem.veiculo.marca }}
-                                            {{ ordem.veiculo.modelo }}
-                                        </strong>
+                                    <strong>
+                                        {{ ordem.marca }}
+                                        {{ ordem.modelo }}
+                                    </strong>
 
+                                    <br>
+
+                                    <small class="text-muted">
+                                        Placa:
+                                        {{ ordem.placa }}
+                                    </small>
+
+                                    {% if ordem.ano %}
                                         <br>
 
                                         <small class="text-muted">
-                                            {{ ordem.veiculo.placa }}
+                                            Ano:
+                                            {{ ordem.ano }}
                                         </small>
-                                    {% else %}
-                                        Veículo #{{ ordem.veiculo_id }}
                                     {% endif %}
                                 </td>
 
@@ -89,7 +363,12 @@ Ordens de Serviço | Sistema da Oficina
                                 </td>
 
                                 <td>
-                                    {{ ordem.quilometragem }} km
+                                    <strong>
+                                        {{ "{:,}".format(
+                                            ordem.quilometragem
+                                        ).replace(",", ".") }}
+                                        km
+                                    </strong>
                                 </td>
 
                                 <td>
@@ -99,19 +378,31 @@ Ordens de Serviço | Sistema da Oficina
                                         <br>
 
                                         <small class="text-muted">
-                                            Óleo: {{ ordem.tipo_oleo }}
+                                            Óleo:
+                                            {{ ordem.tipo_oleo }}
                                         </small>
                                     {% endif %}
                                 </td>
 
                                 <td>
+
                                     {% if ordem.proxima_troca_km %}
-                                        {{ ordem.proxima_troca_km }} km
+
+                                        <strong>
+                                            {{ "{:,}".format(
+                                                ordem.proxima_troca_km
+                                            ).replace(",", ".") }}
+                                            km
+                                        </strong>
+
                                     {% else %}
+
                                         -
+
                                     {% endif %}
 
                                     {% if ordem.proxima_troca_data %}
+
                                         <br>
 
                                         <small class="text-muted">
@@ -119,63 +410,63 @@ Ordens de Serviço | Sistema da Oficina
                                                 "%d/%m/%Y"
                                             ) }}
                                         </small>
+
                                     {% endif %}
+
                                 </td>
 
-                                <td class="text-end">
-                                    <a
-                                        href="{{ url_for(
-                                            'ordem_servico_web.editar',
-                                            ordem_id=ordem.id
-                                        ) }}"
-                                        class="btn btn-sm btn-outline-primary"
-                                    >
-                                        Editar
-                                    </a>
-
-                                    <form
-                                        method="post"
-                                        action="{{ url_for(
-                                            'ordem_servico_web.excluir',
-                                            ordem_id=ordem.id
-                                        ) }}"
-                                        class="d-inline"
-                                        onsubmit="return confirm(
-                                            'Deseja excluir esta ordem de serviço?'
-                                        );"
-                                    >
-                                        <button
-                                            type="submit"
-                                            class="btn btn-sm btn-outline-danger"
-                                        >
-                                            Excluir
-                                        </button>
-                                    </form>
-                                </td>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="text-center py-5">
-                <h5>
-                    Nenhuma ordem de serviço cadastrada
-                </h5>
 
-                <p class="text-muted">
-                    Cadastre o primeiro serviço realizado pela oficina.
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+    {% else %}
+
+        <div class="empty-state">
+
+            <h3 class="empty-state-title">
+                Nenhuma ordem de serviço encontrada
+            </h3>
+
+            {% if pesquisa %}
+
+                <p class="empty-state-description">
+                    Nenhum resultado foi encontrado para
+                    “{{ pesquisa }}”.
                 </p>
 
                 <a
-                    href="{{ url_for('ordem_servico_web.cadastrar') }}"
-                    class="btn btn-warning"
+                    href="{{ url_for('ordem_servico_web.listar') }}"
+                    class="button button-neutral button-small"
                 >
-                    Cadastrar ordem
+                    Limpar pesquisa
                 </a>
-            </div>
-        {% endif %}
-    </div>
+
+            {% else %}
+
+                <p class="empty-state-description">
+                    Cadastre o primeiro serviço realizado pela oficina.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
 </div>
 
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script
+    src="{{ url_for('static', filename='js/ordens.js') }}"
+></script>
 {% endblock %}

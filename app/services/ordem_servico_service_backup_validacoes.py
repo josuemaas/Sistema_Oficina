@@ -10,9 +10,6 @@ from app.services.notificacao_service import (
 from app.services.predicao_service import (
     PredicaoService,
 )
-from app.services.validacao_historico_service import (
-    ValidacaoHistoricoService,
-)
 
 
 class OrdemServicoService:
@@ -198,7 +195,7 @@ class OrdemServicoService:
     ):
         """
         Calcula a previsão de uma ordem utilizando
-        todas as revisões disponíveis até a data
+        somente o histórico disponível até a data
         daquela ordem.
         """
 
@@ -255,8 +252,8 @@ class OrdemServicoService:
         Recalcula todas as previsões de uma placa
         em ordem cronológica.
 
-        Cada revisão utiliza todo o histórico
-        disponível até aquele atendimento.
+        Cada nova revisão utiliza todas as revisões
+        anteriores disponíveis daquele veículo.
 
         Exemplo:
 
@@ -419,9 +416,7 @@ class OrdemServicoService:
         quilometragem = (
             OrdemServicoService
             ._converter_int(
-                dados.get(
-                    "quilometragem"
-                ),
+                dados.get("quilometragem"),
                 "quilometragem",
             )
         )
@@ -471,14 +466,6 @@ class OrdemServicoService:
                 ),
                 "data_servico",
             )
-        )
-
-        # Valida a consistência do novo registro
-        # antes de criar a ordem.
-        ValidacaoHistoricoService.validar(
-            placa=placa,
-            data_servico=data_servico,
-            quilometragem=quilometragem,
         )
 
         ordem = OrdemServico(
@@ -581,75 +568,6 @@ class OrdemServicoService:
             ordem.placa.strip().upper()
         )
 
-        # -------------------------------------------------
-        # Valores propostos
-        # -------------------------------------------------
-        # Antes de alterar a ordem em memória, calculamos
-        # como ela ficará depois da edição.
-        # Isso permite validar o histórico antes de salvar.
-        # -------------------------------------------------
-
-        placa_proposta = (
-            dados.get(
-                "placa",
-                ordem.placa,
-            )
-        )
-
-        placa_proposta = (
-            OrdemServicoService
-            ._normalizar_texto(
-                placa_proposta,
-                "placa",
-            )
-            .upper()
-        )
-
-        data_proposta = (
-            OrdemServicoService
-            ._converter_data(
-                dados.get(
-                    "data_servico",
-                    ordem.data_servico,
-                ),
-                "data_servico",
-            )
-        )
-
-        quilometragem_proposta = (
-            OrdemServicoService
-            ._converter_int(
-                dados.get(
-                    "quilometragem",
-                    ordem.quilometragem,
-                ),
-                "quilometragem",
-            )
-        )
-
-        if quilometragem_proposta < 0:
-            raise ValueError(
-                "A quilometragem não pode "
-                "ser negativa."
-            )
-
-        # Valida a edição ignorando a própria
-        # ordem que está sendo alterada.
-        ValidacaoHistoricoService.validar(
-            placa=placa_proposta,
-            data_servico=data_proposta,
-            quilometragem=(
-                quilometragem_proposta
-            ),
-            ordem_id_ignorar=(
-                ordem.id
-            ),
-        )
-
-        # -------------------------------------------------
-        # Atualização dos dados
-        # -------------------------------------------------
-
         if "cliente_id" in dados:
             ordem.cliente_id = (
                 OrdemServicoService
@@ -663,7 +581,12 @@ class OrdemServicoService:
 
         if "placa" in dados:
             ordem.placa = (
-                placa_proposta
+                OrdemServicoService
+                ._normalizar_texto(
+                    dados["placa"],
+                    "placa",
+                )
+                .upper()
             )
 
         if "marca" in dados:
@@ -696,13 +619,31 @@ class OrdemServicoService:
 
         if "data_servico" in dados:
             ordem.data_servico = (
-                data_proposta
+                OrdemServicoService
+                ._converter_data(
+                    dados[
+                        "data_servico"
+                    ],
+                    "data_servico",
+                )
             )
 
         if "quilometragem" in dados:
             ordem.quilometragem = (
-                quilometragem_proposta
+                OrdemServicoService
+                ._converter_int(
+                    dados[
+                        "quilometragem"
+                    ],
+                    "quilometragem",
+                )
             )
+
+            if ordem.quilometragem < 0:
+                raise ValueError(
+                    "A quilometragem não pode "
+                    "ser negativa."
+                )
 
         if "descricao_servico" in dados:
             ordem.descricao_servico = (
@@ -781,9 +722,6 @@ class OrdemServicoService:
         try:
             OrdemServicoRepository.flush()
 
-            # Se a placa foi alterada,
-            # recalculamos também o histórico
-            # da placa antiga.
             if (
                 placa_anterior
                 != placa_atual
@@ -793,8 +731,6 @@ class OrdemServicoService:
                         placa_anterior
                     )
 
-            # Recalcula todas as revisões
-            # da placa atual.
             OrdemServicoService \
                 .recalcular_historico_placa(
                     placa_atual
@@ -833,10 +769,6 @@ class OrdemServicoService:
 
             OrdemServicoRepository.flush()
 
-            # A exclusão também altera o conjunto
-            # histórico utilizado pela regressão.
-            # Por isso, todas as previsões restantes
-            # dessa placa precisam ser recalculadas.
             OrdemServicoService \
                 .recalcular_historico_placa(
                     placa

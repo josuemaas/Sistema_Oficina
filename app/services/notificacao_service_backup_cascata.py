@@ -6,13 +6,9 @@ from datetime import (
 )
 from urllib.parse import quote
 
-from app.integrations.evolution_api import (
-    EvolutionAPI,
-)
+from app.integrations.evolution_api import EvolutionAPI
 from app.models.notificacao import Notificacao
-from app.models.ordem_servico import (
-    OrdemServico,
-)
+from app.models.ordem_servico import OrdemServico
 from app.repositories.notificacao_repository import (
     NotificacaoRepository,
 )
@@ -79,8 +75,7 @@ class NotificacaoService:
 
         if ordem.proxima_troca_data is not None:
             data_formatada = (
-                ordem.proxima_troca_data
-                .strftime(
+                ordem.proxima_troca_data.strftime(
                     "%d/%m/%Y"
                 )
             )
@@ -121,10 +116,7 @@ class NotificacaoService:
             if caractere.isdigit()
         )
 
-        if len(somente_numeros) in (
-            10,
-            11,
-        ):
+        if len(somente_numeros) in (10, 11):
             somente_numeros = (
                 f"55{somente_numeros}"
             )
@@ -195,252 +187,9 @@ class NotificacaoService:
         }
 
     @staticmethod
-    def garantir_notificacao(
-        ordem: OrdemServico,
-    ):
-        """
-        Garante que uma ordem de serviço possua
-        uma notificação vinculada.
-
-        Este método não define ainda se a
-        notificação ficará PENDENTE ou CANCELADA.
-        """
-
-        if ordem is None:
-            return None
-
-        if ordem.id is None:
-            return None
-
-        if ordem.proxima_troca_data is None:
-            return None
-
-        notificacao = (
-            NotificacaoRepository
-            .buscar_por_ordem(
-                ordem.id
-            )
-        )
-
-        if notificacao is None:
-            data_agendada = (
-                ordem.proxima_troca_data
-                - timedelta(
-                    days=7
-                )
-            )
-
-            notificacao = Notificacao(
-                cliente_id=(
-                    ordem.cliente_id
-                ),
-                ordem_servico_id=(
-                    ordem.id
-                ),
-                data_agendada_disparo=(
-                    data_agendada
-                ),
-                status="PENDENTE",
-                mensagem=(
-                    NotificacaoService
-                    .montar_mensagem(
-                        ordem
-                    )
-                ),
-                tentativas=0,
-            )
-
-            return (
-                NotificacaoRepository
-                .adicionar(
-                    notificacao
-                )
-            )
-
-        return notificacao
-
-    @staticmethod
-    def atualizar_dados_notificacao(
-        notificacao: Notificacao,
-        ordem: OrdemServico,
-    ):
-        """
-        Atualiza a previsão armazenada em uma
-        notificação que ainda não foi enviada.
-
-        Notificações já enviadas são preservadas
-        como histórico do que realmente ocorreu.
-        """
-
-        if notificacao is None:
-            return None
-
-        if ordem is None:
-            return notificacao
-
-        if notificacao.status == "ENVIADO":
-            return notificacao
-
-        notificacao.cliente_id = (
-            ordem.cliente_id
-        )
-
-        notificacao.data_agendada_disparo = (
-            ordem.proxima_troca_data
-            - timedelta(
-                days=7
-            )
-        )
-
-        notificacao.mensagem = (
-            NotificacaoService
-            .montar_mensagem(
-                ordem
-            )
-        )
-
-        notificacao.erro = None
-
-        return notificacao
-
-    @staticmethod
-    def sincronizar_com_ordem(
-        ordem: OrdemServico,
-    ):
-        """
-        Sincroniza uma notificação individual com
-        os dados atuais de sua ordem.
-        """
-
-        if ordem is None:
-            return None
-
-        notificacao = (
-            NotificacaoService
-            .garantir_notificacao(
-                ordem
-            )
-        )
-
-        if notificacao is None:
-            return None
-
-        return (
-            NotificacaoService
-            .atualizar_dados_notificacao(
-                notificacao,
-                ordem,
-            )
-        )
-
-    @staticmethod
-    def sincronizar_historico_placa(
-        placa: str,
-    ):
-        """
-        Sincroniza as notificações de todo o
-        histórico de um veículo.
-
-        As ordens antigas ficam CANCELADAS e
-        somente a ordem mais recente mantém uma
-        notificação ativa.
-
-        Notificações já ENVIADAS não são alteradas.
-        """
-
-        if not placa:
-            return {
-                "total_ordens": 0,
-                "canceladas": 0,
-                "pendentes": 0,
-            }
-
-        placa_normalizada = (
-            placa.strip().upper()
-        )
-
-        ordens = (
-            OrdemServico.query
-            .filter(
-                OrdemServico.placa
-                == placa_normalizada
-            )
-            .order_by(
-                OrdemServico.data_servico.asc(),
-                OrdemServico.id.asc(),
-            )
-            .all()
-        )
-
-        if not ordens:
-            return {
-                "total_ordens": 0,
-                "canceladas": 0,
-                "pendentes": 0,
-            }
-
-        ultima_ordem = ordens[-1]
-
-        canceladas = 0
-        pendentes = 0
-
-        for ordem in ordens:
-            notificacao = (
-                NotificacaoService
-                .garantir_notificacao(
-                    ordem
-                )
-            )
-
-            if notificacao is None:
-                continue
-
-            if notificacao.status == "ENVIADO":
-                continue
-
-            NotificacaoService \
-                .atualizar_dados_notificacao(
-                    notificacao,
-                    ordem,
-                )
-
-            if ordem.id == ultima_ordem.id:
-                notificacao.status = (
-                    "PENDENTE"
-                )
-
-                notificacao.tentativas = 0
-                notificacao.data_envio = None
-                notificacao.erro = None
-
-                pendentes += 1
-
-            else:
-                notificacao.status = (
-                    "CANCELADO"
-                )
-
-                notificacao.erro = None
-
-                canceladas += 1
-
-        return {
-            "total_ordens": len(
-                ordens
-            ),
-            "canceladas": canceladas,
-            "pendentes": pendentes,
-        }
-
-    @staticmethod
     def cancelar_notificacoes_anteriores(
         ordem: OrdemServico,
     ):
-        """
-        Mantido para compatibilidade com outras
-        partes do sistema.
-        """
-
         if ordem is None:
             return 0
 
@@ -459,28 +208,106 @@ class NotificacaoService:
     def criar_para_ordem(
         ordem: OrdemServico,
     ):
-        """
-        Cria a notificação e sincroniza o histórico
-        completo da placa.
-        """
-
         if ordem is None:
             return None
 
         if ordem.proxima_troca_data is None:
             return None
 
+        NotificacaoService \
+            .cancelar_notificacoes_anteriores(
+                ordem
+            )
+
+        notificacao_existente = (
+            NotificacaoRepository
+            .buscar_por_ordem(
+                ordem.id
+            )
+        )
+
+        if notificacao_existente:
+            return notificacao_existente
+
+        data_agendada = (
+            ordem.proxima_troca_data
+            - timedelta(days=7)
+        )
+
+        notificacao = Notificacao(
+            cliente_id=ordem.cliente_id,
+            ordem_servico_id=ordem.id,
+            data_agendada_disparo=(
+                data_agendada
+            ),
+            status="PENDENTE",
+            mensagem=(
+                NotificacaoService
+                .montar_mensagem(
+                    ordem
+                )
+            ),
+            tentativas=0,
+        )
+
+        return (
+            NotificacaoRepository
+            .adicionar(
+                notificacao
+            )
+        )
+
+    @staticmethod
+    def sincronizar_com_ordem(
+        ordem: OrdemServico,
+    ):
+        if ordem is None:
+            return None
+
+        if ordem.id is None:
+            return None
+
+        if ordem.proxima_troca_data is None:
+            return None
+
         notificacao = (
+            NotificacaoRepository
+            .buscar_por_ordem(
+                ordem.id
+            )
+        )
+
+        if notificacao is None:
+            return None
+
+        if notificacao.status == "ENVIADO":
+            return notificacao
+
+        notificacao.cliente_id = (
+            ordem.cliente_id
+        )
+
+        notificacao.data_agendada_disparo = (
+            ordem.proxima_troca_data
+            - timedelta(days=7)
+        )
+
+        notificacao.mensagem = (
             NotificacaoService
-            .garantir_notificacao(
+            .montar_mensagem(
                 ordem
             )
         )
 
-        NotificacaoService \
-            .sincronizar_historico_placa(
-                ordem.placa
-            )
+        notificacao.erro = None
+
+        if notificacao.status in {
+            "PENDENTE",
+            "FALHA",
+        }:
+            notificacao.status = "PENDENTE"
+            notificacao.tentativas = 0
+            notificacao.data_envio = None
 
         return notificacao
 
@@ -503,9 +330,7 @@ class NotificacaoService:
                 "Esta notificação foi cancelada."
             )
 
-        ordem = (
-            notificacao.ordem_servico
-        )
+        ordem = notificacao.ordem_servico
 
         if ordem is None:
             raise ValueError(
@@ -544,16 +369,12 @@ class NotificacaoService:
         )
 
         try:
-            resposta = (
-                EvolutionAPI.enviar_texto(
-                    cliente.telefone,
-                    mensagem,
-                )
+            resposta = EvolutionAPI.enviar_texto(
+                cliente.telefone,
+                mensagem,
             )
 
-            notificacao.status = (
-                "ENVIADO"
-            )
+            notificacao.status = "ENVIADO"
 
             notificacao.data_envio = (
                 datetime.now(
@@ -568,10 +389,7 @@ class NotificacaoService:
             return resposta
 
         except Exception as erro:
-            notificacao.status = (
-                "FALHA"
-            )
-
+            notificacao.status = "FALHA"
             notificacao.erro = str(
                 erro
             )
@@ -585,9 +403,7 @@ class NotificacaoService:
         data_referencia: date | None = None,
     ):
         if data_referencia is None:
-            data_referencia = (
-                date.today()
-            )
+            data_referencia = date.today()
 
         notificacoes = (
             NotificacaoRepository
@@ -618,9 +434,7 @@ class NotificacaoService:
                         "notificacao_id": (
                             notificacao.id
                         ),
-                        "status": (
-                            "ENVIADO"
-                        ),
+                        "status": "ENVIADO",
                         "erro": None,
                     }
                 )
@@ -633,9 +447,7 @@ class NotificacaoService:
                         "notificacao_id": (
                             notificacao.id
                         ),
-                        "status": (
-                            "FALHA"
-                        ),
+                        "status": "FALHA",
                         "erro": str(
                             erro
                         ),
@@ -644,8 +456,7 @@ class NotificacaoService:
 
         return {
             "data_referencia": (
-                data_referencia
-                .isoformat()
+                data_referencia.isoformat()
             ),
             "total": total,
             "enviados": enviados,

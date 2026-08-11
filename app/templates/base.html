@@ -63,7 +63,10 @@
 
     <div class="app-shell">
 
-        <aside class="app-sidebar">
+        <aside
+            class="app-sidebar"
+            id="appSidebar"
+        >
 
             <div class="sidebar-brand">
 
@@ -98,6 +101,10 @@
                         and request.endpoint.startswith('dashboard_web.') %}
                         is-active
                     {% endif %}"
+                    {% if request.endpoint
+                        and request.endpoint.startswith('dashboard_web.') %}
+                        aria-current="page"
+                    {% endif %}
                 >
                     Dashboard
                 </a>
@@ -109,6 +116,10 @@
                         and request.endpoint.startswith('cliente_web.') %}
                         is-active
                     {% endif %}"
+                    {% if request.endpoint
+                        and request.endpoint.startswith('cliente_web.') %}
+                        aria-current="page"
+                    {% endif %}
                 >
                     Clientes
                 </a>
@@ -120,6 +131,10 @@
                         and request.endpoint.startswith('ordem_servico_web.') %}
                         is-active
                     {% endif %}"
+                    {% if request.endpoint
+                        and request.endpoint.startswith('ordem_servico_web.') %}
+                        aria-current="page"
+                    {% endif %}
                 >
                     Ordens de Serviço
                 </a>
@@ -139,6 +154,14 @@
             </div>
 
         </aside>
+
+        <button
+            type="button"
+            class="sidebar-backdrop"
+            id="sidebarBackdrop"
+            aria-label="Fechar menu"
+            tabindex="-1"
+        ></button>
 
         <div class="app-main">
 
@@ -229,7 +252,7 @@
                                 {% for categoria, mensagem in mensagens %}
 
                                     <div
-                                        class="system-message
+                                        class="alert system-message
                                         system-message-{{ categoria }}"
                                         role="alert"
                                     >
@@ -289,23 +312,134 @@
                     ".app-shell"
                 );
 
-                if (!sidebarToggle || !appShell) {
+                const sidebarBackdrop = document.getElementById(
+                    "sidebarBackdrop"
+                );
+
+                const appSidebar = document.getElementById(
+                    "appSidebar"
+                );
+
+                const appMain = appShell
+                    ? appShell.querySelector(
+                        ".app-main"
+                    )
+                    : null;
+
+                const menuBreakpoint = window.matchMedia(
+                    "(max-width: 820px)"
+                );
+
+                if (
+                    !sidebarToggle
+                    || !sidebarBackdrop
+                    || !appSidebar
+                    || !appMain
+                    || !appShell
+                ) {
                     return;
+                }
+
+                function definirMenuAberto(menuAberto) {
+                    const menuMovel = menuBreakpoint.matches;
+                    const menuEstaAberto = menuMovel && menuAberto;
+
+                    appShell.classList.toggle(
+                        "sidebar-is-open",
+                        menuEstaAberto
+                    );
+
+                    sidebarToggle.setAttribute(
+                        "aria-expanded",
+                        String(menuEstaAberto)
+                    );
+
+                    appMain.inert = menuEstaAberto;
+
+                    if (
+                        menuMovel
+                        && !menuEstaAberto
+                        && appSidebar.contains(
+                            document.activeElement
+                        )
+                    ) {
+                        sidebarToggle.focus();
+                    }
+
+                    appSidebar.setAttribute(
+                        "aria-hidden",
+                        String(menuMovel && !menuEstaAberto)
+                    );
+
+                    appSidebar.inert = menuMovel && !menuEstaAberto;
+
+                    document.body.classList.toggle(
+                        "menu-mobile-open",
+                        menuEstaAberto
+                    );
+
+                    if (menuEstaAberto) {
+                        const linkInicial = appSidebar.querySelector(
+                            'a[aria-current="page"], a'
+                        );
+
+                        if (linkInicial) {
+                            linkInicial.focus();
+                        }
+                    }
                 }
 
                 sidebarToggle.addEventListener(
                     "click",
                     function () {
-                        const menuAberto = appShell.classList.toggle(
-                            "sidebar-is-open"
-                        );
-
-                        sidebarToggle.setAttribute(
-                            "aria-expanded",
-                            String(menuAberto)
+                        definirMenuAberto(
+                            !appShell.classList.contains(
+                                "sidebar-is-open"
+                            )
                         );
                     }
                 );
+
+                sidebarBackdrop.addEventListener(
+                    "click",
+                    function () {
+                        definirMenuAberto(false);
+                    }
+                );
+
+                appSidebar.querySelectorAll("a").forEach(
+                    function (link) {
+                        link.addEventListener(
+                            "click",
+                            function () {
+                                definirMenuAberto(false);
+                            }
+                        );
+                    }
+                );
+
+                document.addEventListener(
+                    "keydown",
+                    function (evento) {
+                        if (
+                            evento.key === "Escape"
+                            && appShell.classList.contains(
+                                "sidebar-is-open"
+                            )
+                        ) {
+                            definirMenuAberto(false);
+                        }
+                    }
+                );
+
+                menuBreakpoint.addEventListener(
+                    "change",
+                    function () {
+                        definirMenuAberto(false);
+                    }
+                );
+
+                definirMenuAberto(false);
             }
         );
     </script>

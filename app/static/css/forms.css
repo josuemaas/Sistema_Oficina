@@ -61,7 +61,7 @@
 .form-control,
 .form-select {
     width: 100%;
-    min-height: 42px;
+    min-height: var(--control-height);
     padding: 9px 12px;
 
     border: 1px solid var(--color-border-strong);
@@ -73,6 +73,10 @@
     font-size: 0.88rem;
 
     box-shadow: none;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
 }
 
 .form-control:hover,
@@ -84,7 +88,7 @@
 .form-select:focus {
     border-color: var(--color-primary);
 
-    box-shadow: 0 0 0 3px rgba(15, 59, 91, 0.12);
+    box-shadow: var(--focus-ring);
 
     outline: none;
 }
@@ -102,13 +106,44 @@
     cursor: not-allowed;
 }
 
+.form-control.is-invalid,
+.form-select.is-invalid,
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+    border-color: var(--color-danger);
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus,
+.was-validated .form-control:invalid:focus,
+.was-validated .form-select:invalid:focus {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 0 3px rgba(182, 72, 72, 0.12);
+}
+
+.form-control.is-valid,
+.form-select.is-valid,
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+    border-color: var(--color-success);
+}
+
+.form-control.is-valid:focus,
+.form-select.is-valid:focus,
+.was-validated .form-control:valid:focus,
+.was-validated .form-select:valid:focus {
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 3px rgba(28, 111, 75, 0.12);
+}
+
 textarea.form-control {
     min-height: 96px;
 
     resize: vertical;
 }
 
-.form-help {
+.form-help,
+.form-text {
     margin: 0;
 
     color: var(--color-text-muted);
@@ -116,11 +151,17 @@ textarea.form-control {
     font-size: 0.75rem;
 }
 
-.form-error {
+.form-error,
+.invalid-feedback {
     margin: 0;
 
     color: var(--color-danger);
 
+    font-size: 0.75rem;
+}
+
+.valid-feedback {
+    color: var(--color-success);
     font-size: 0.75rem;
 }
 
@@ -134,6 +175,10 @@ textarea.form-control {
 .lookup-field .form-control {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
+}
+
+.lookup-field .form-control[readonly] {
+    cursor: pointer;
 }
 
 .lookup-button {
@@ -177,9 +222,12 @@ textarea.form-control {
 
     min-height: 28px;
     margin: 0;
+    padding-left: 0;
 }
 
-.form-check-input {
+.form-check .form-check-input {
+    float: none;
+
     width: 16px;
     height: 16px;
     margin: 0;
@@ -212,7 +260,7 @@ textarea.form-control {
     justify-content: space-between;
     gap: 14px;
 
-    padding-top: 18px;
+    padding: 16px 0 0;
 
     border-top: 1px solid var(--color-border);
 }
@@ -241,7 +289,7 @@ textarea.form-control {
 }
 
 .input-group-text {
-    min-height: 38px;
+    min-height: var(--control-height);
     padding: 8px 10px;
 
     border: 1px solid var(--color-border-strong);
@@ -250,6 +298,13 @@ textarea.form-control {
     color: var(--color-text-muted);
 
     font-size: 0.82rem;
+}
+
+.input-group > .form-control,
+.input-group > .form-select,
+.input-group > .input-group-text,
+.input-group > .btn {
+    min-height: var(--control-height);
 }
 
 @media (max-width: 760px) {

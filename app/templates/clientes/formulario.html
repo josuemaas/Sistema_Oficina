@@ -1,5 +1,32 @@
 {% extends "base.html" %}
 
+{% if modo == "selecionar" %}
+    {% set retorno_clientes_url = url_for(
+        'cliente_web.listar',
+        modo='selecionar',
+        ordem_id=ordem_id
+    ) %}
+    {% set formulario_cliente_url = url_for(
+        'cliente_web.cadastrar',
+        modo='selecionar',
+        ordem_id=ordem_id
+    ) %}
+{% else %}
+    {% set retorno_clientes_url = url_for(
+        'cliente_web.listar'
+    ) %}
+    {% if cliente %}
+        {% set formulario_cliente_url = url_for(
+            'cliente_web.editar',
+            cliente_id=cliente.id
+        ) %}
+    {% else %}
+        {% set formulario_cliente_url = url_for(
+            'cliente_web.cadastrar'
+        ) %}
+    {% endif %}
+{% endif %}
+
 {% block title %}
 {% if cliente %}
 Editar cliente
@@ -29,24 +56,19 @@ Novo cliente
             </div>
 
             <a
-                href="{{ url_for('cliente_web.listar') }}"
+                href="{{ retorno_clientes_url }}"
                 class="btn btn-outline-secondary"
             >
                 Voltar
             </a>
         </div>
 
-        {% with mensagens = get_flashed_messages(with_categories=true) %}
-            {% for categoria, mensagem in mensagens %}
-                <div class="alert alert-{{ categoria }}">
-                    {{ mensagem }}
-                </div>
-            {% endfor %}
-        {% endwith %}
-
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <form method="post">
+                <form
+                    method="post"
+                    action="{{ formulario_cliente_url }}"
+                >
                     <div class="mb-3">
                         <label
                             for="nome"
@@ -60,14 +82,36 @@ Novo cliente
                             id="nome"
                             name="nome"
                             class="form-control"
-                            value="{{ cliente.nome if cliente else '' }}"
+                            value="{{ request.form.get('nome', cliente.nome if cliente else '') }}"
                             maxlength="150"
                             required
                         >
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-lg-4 mb-3">
+                            <label
+                                for="cpf_cnpj"
+                                class="form-label"
+                            >
+                                CPF
+                            </label>
+
+                            <input
+                                type="text"
+                                id="cpf_cnpj"
+                                name="cpf_cnpj"
+                                class="form-control"
+                                value="{{ request.form.get('cpf_cnpj', cliente.cpf_cnpj if cliente and cliente.cpf_cnpj else '') }}"
+                                maxlength="14"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                placeholder="000.000.000-00"
+                                data-mask-input="cpf"
+                            >
+                        </div>
+
+                        <div class="col-lg-4 mb-3">
                             <label
                                 for="telefone"
                                 class="form-label"
@@ -80,14 +124,16 @@ Novo cliente
                                 id="telefone"
                                 name="telefone"
                                 class="form-control"
-                                value="{{ cliente.telefone if cliente else '' }}"
-                                maxlength="20"
-                                placeholder="47999999999"
+                                value="{{ request.form.get('telefone', cliente.telefone if cliente else '') }}"
+                                maxlength="15"
+                                inputmode="numeric"
+                                placeholder="(47) 99999-9999"
+                                data-mask-input="telefone-local"
                                 required
                             >
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <div class="col-lg-4 mb-3">
                             <label
                                 for="email"
                                 class="form-label"
@@ -100,7 +146,7 @@ Novo cliente
                                 id="email"
                                 name="email"
                                 class="form-control"
-                                value="{{ cliente.email if cliente and cliente.email else '' }}"
+                                value="{{ request.form.get('email', cliente.email if cliente and cliente.email else '') }}"
                                 maxlength="150"
                             >
                         </div>
@@ -119,7 +165,7 @@ Novo cliente
                             name="observacoes"
                             class="form-control"
                             rows="4"
-                        >{{ cliente.observacoes if cliente and cliente.observacoes else '' }}</textarea>
+                        >{{ request.form.get('observacoes', cliente.observacoes if cliente and cliente.observacoes else '') }}</textarea>
                     </div>
 
                     <div class="form-check mb-4">
@@ -128,7 +174,14 @@ Novo cliente
                             id="recebe_notificacao"
                             name="recebe_notificacao"
                             class="form-check-input"
-                            {% if cliente and cliente.recebe_notificacao %}
+                            {% if (
+                                request.method == "POST"
+                                and request.form.get("recebe_notificacao") == "on"
+                            ) or (
+                                request.method != "POST"
+                                and cliente
+                                and cliente.recebe_notificacao
+                            ) %}
                                 checked
                             {% endif %}
                         >
@@ -143,7 +196,7 @@ Novo cliente
 
                     <div class="d-flex justify-content-end gap-2">
                         <a
-                            href="{{ url_for('cliente_web.listar') }}"
+                            href="{{ retorno_clientes_url }}"
                             class="btn btn-outline-secondary"
                         >
                             Cancelar
@@ -166,4 +219,10 @@ Novo cliente
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script
+    src="{{ url_for('static', filename='js/clientes.js') }}"
+></script>
 {% endblock %}
