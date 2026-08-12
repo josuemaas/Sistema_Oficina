@@ -5,7 +5,6 @@ from sqlalchemy import text
 
 from app.extensions import db, migrate
 from app.routes import (
-    cliente_bp,
     cliente_web_bp,
     dashboard_web_bp,
     notificacao_web_bp,
@@ -24,8 +23,6 @@ def create_app() -> Flask:
 
     db.init_app(app)
     migrate.init_app(app, db)
-
-    app.register_blueprint(cliente_bp)
 
     app.register_blueprint(dashboard_web_bp)
     app.register_blueprint(cliente_web_bp)
