@@ -8,6 +8,7 @@ from datetime import (
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+from app.extensions import db
 from app.integrations.evolution_api import EvolutionAPI
 from app.models.notificacao import Notificacao
 from app.models.ordem_servico import OrdemServico
