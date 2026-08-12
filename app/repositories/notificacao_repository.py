@@ -1,6 +1,9 @@
-from datetime import date
+from datetime import date, datetime
+
+from sqlalchemy import case, func
 
 from app.extensions import db
+from app.models.cliente import Cliente
 from app.models.notificacao import Notificacao
 from app.models.ordem_servico import OrdemServico
 
@@ -16,6 +19,187 @@ class NotificacaoRepository:
             )
             .all()
         )
+
+    @staticmethod
+    def consultar(
+        fila: str,
+        situacao: str,
+        data_inicial: date | None,
+        data_final: date | None,
+        tipo_pesquisa: str,
+        pesquisa: str,
+        data_referencia: date,
+    ):
+        consulta = Notificacao.query
+
+        if fila == "hoje":
+            consulta = consulta.filter(
+                Notificacao.data_agendada_disparo
+                == data_referencia
+            )
+
+        elif fila == "proximas":
+            consulta = consulta.filter(
+                Notificacao.status == "PENDENTE",
+                Notificacao.data_agendada_disparo
+                > data_referencia,
+            )
+
+        if situacao != "todas":
+            consulta = consulta.filter(
+                Notificacao.status == situacao
+            )
+
+        if data_inicial is not None:
+            consulta = consulta.filter(
+                Notificacao.data_agendada_disparo
+                >= data_inicial
+            )
+
+        if data_final is not None:
+            consulta = consulta.filter(
+                Notificacao.data_agendada_disparo
+                <= data_final
+            )
+
+        if pesquisa:
+            if tipo_pesquisa == "telefone":
+                telefone = Cliente.telefone
+
+                for caractere in (
+                    "(",
+                    ")",
+                    "-",
+                    " ",
+                    "+",
+                ):
+                    telefone = func.replace(
+                        telefone,
+                        caractere,
+                        "",
+                    )
+
+                consulta = (
+                    consulta
+                    .join(
+                        Cliente,
+                        Notificacao.cliente_id
+                        == Cliente.id,
+                    )
+                    .filter(
+                        telefone.contains(pesquisa)
+                    )
+                )
+
+            elif tipo_pesquisa == "placa":
+                placa = OrdemServico.placa
+
+                for caractere in (
+                    "-",
+                    " ",
+                ):
+                    placa = func.replace(
+                        placa,
+                        caractere,
+                        "",
+                    )
+
+                consulta = (
+                    consulta
+                    .join(
+                        OrdemServico,
+                        Notificacao.ordem_servico_id
+                        == OrdemServico.id,
+                    )
+                    .filter(
+                        placa.ilike(
+                            f"%{pesquisa}%"
+                        )
+                    )
+                )
+
+            else:
+                consulta = (
+                    consulta
+                    .join(
+                        Cliente,
+                        Notificacao.cliente_id
+                        == Cliente.id,
+                    )
+                    .filter(
+                        Cliente.nome.ilike(
+                            f"%{pesquisa}%"
+                        )
+                    )
+                )
+
+        prioridade_status = case(
+            (Notificacao.status == "PENDENTE", 0),
+            (Notificacao.status == "FALHA", 1),
+            (Notificacao.status == "ENVIADO", 2),
+            else_=3,
+        )
+
+        return (
+            consulta
+            .order_by(
+                prioridade_status.asc(),
+                Notificacao.data_agendada_disparo.asc(),
+                Notificacao.id.asc(),
+            )
+            .all()
+        )
+
+    @staticmethod
+    def obter_indicadores(
+        data_referencia: date,
+        inicio_dia_utc: datetime,
+        fim_dia_utc: datetime,
+    ):
+        pendentes = (
+            Notificacao.query
+            .filter(
+                Notificacao.status == "PENDENTE"
+            )
+            .count()
+        )
+
+        para_hoje = (
+            Notificacao.query
+            .filter(
+                Notificacao.status == "PENDENTE",
+                Notificacao.data_agendada_disparo
+                == data_referencia,
+            )
+            .count()
+        )
+
+        falhas = (
+            Notificacao.query
+            .filter(
+                Notificacao.status == "FALHA"
+            )
+            .count()
+        )
+
+        enviadas_hoje = (
+            Notificacao.query
+            .filter(
+                Notificacao.status == "ENVIADO",
+                Notificacao.data_envio
+                >= inicio_dia_utc,
+                Notificacao.data_envio
+                < fim_dia_utc,
+            )
+            .count()
+        )
+
+        return {
+            "pendentes": pendentes,
+            "para_hoje": para_hoje,
+            "falhas": falhas,
+            "enviadas_hoje": enviadas_hoje,
+        }
 
     @staticmethod
     def buscar_por_id(
@@ -102,11 +286,17 @@ class NotificacaoRepository:
     ):
         return (
             Notificacao.query
+            .join(
+                Cliente,
+                Notificacao.cliente_id
+                == Cliente.id,
+            )
             .filter(
-                Notificacao.status
-                == "PENDENTE",
+                Notificacao.status == "PENDENTE",
                 Notificacao.data_agendada_disparo
                 <= data_limite,
+                Cliente.ativo.is_(True),
+                Cliente.recebe_notificacao.is_(True),
             )
             .order_by(
                 Notificacao.data_agendada_disparo.asc(),

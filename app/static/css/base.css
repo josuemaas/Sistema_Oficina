@@ -37,7 +37,6 @@
     --radius-large: 16px;
 
     --sidebar-width: 252px;
-    --topbar-height: 72px;
     --control-height: 42px;
 
     --transition-fast: 180ms ease;
@@ -303,7 +302,6 @@ ol {
     }
 
     .app-sidebar,
-    .app-topbar,
     .page-heading-actions,
     .sidebar-toggle {
         display: none !important;

@@ -47,7 +47,20 @@
 }
 
 .page-search-field-compact {
-    flex: 0 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    flex: 0 1 260px;
+}
+
+.page-search-field-compact .form-label {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.page-search-field-compact .form-select {
+    min-width: 0;
 }
 
 .page-search-actions {
@@ -374,6 +387,7 @@
     }
 
     .page-search-field {
+        flex: 0 0 auto;
         width: 100%;
         min-width: 0;
     }
@@ -385,7 +399,7 @@
 
     .page-search-actions > .button,
     .page-search-actions > .btn {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
     }
 
     .details-grid,

@@ -1,51 +1,422 @@
 from datetime import (
     date,
     datetime,
+    time,
     timedelta,
     timezone,
 )
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
-from app.integrations.evolution_api import (
-    EvolutionAPI,
-)
+from app.integrations.evolution_api import EvolutionAPI
 from app.models.notificacao import Notificacao
-from app.models.ordem_servico import (
-    OrdemServico,
-)
-from app.repositories.notificacao_repository import (
-    NotificacaoRepository,
-)
+from app.models.ordem_servico import OrdemServico
+from app.repositories.notificacao_repository import NotificacaoRepository
 
 
 class NotificacaoService:
+    FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
+
+    FILAS_VALIDAS = {
+        "todas",
+        "hoje",
+        "proximas",
+    }
+
+    SITUACOES_VALIDAS = {
+        "PENDENTE",
+        "ENVIADO",
+        "FALHA",
+        "CANCELADO",
+    }
+
+    TIPOS_PESQUISA_VALIDOS = {
+        "cliente",
+        "telefone",
+        "placa",
+    }
+
+    STATUS_OPCOES = (
+        ("PENDENTE", "Pendente"),
+        ("ENVIADO", "Enviada"),
+        ("FALHA", "Falha"),
+        ("CANCELADO", "Cancelada"),
+    )
+
+    STATUS_APRESENTACAO = {
+        "PENDENTE": (
+            "Pendente",
+            "badge-warning",
+        ),
+        "ENVIADO": (
+            "Enviada",
+            "badge-success",
+        ),
+        "FALHA": (
+            "Falha",
+            "badge-danger",
+        ),
+        "CANCELADO": (
+            "Cancelada",
+            "badge-neutral",
+        ),
+    }
+
+    @staticmethod
+    def data_atual():
+        return datetime.now(
+            NotificacaoService.FUSO_BRASIL
+        ).date()
+
+    @staticmethod
+    def normalizar_fila(fila: str):
+        valor = (fila or "").strip().lower()
+
+        if valor not in NotificacaoService.FILAS_VALIDAS:
+            return "todas"
+
+        return valor
+
+    @staticmethod
+    def normalizar_situacao(situacao: str):
+        valor = (situacao or "").strip()
+
+        if valor.lower() == "todas":
+            return "todas"
+
+        valor = valor.upper()
+
+        if valor not in NotificacaoService.SITUACOES_VALIDAS:
+            return "todas"
+
+        return valor
+
+    @staticmethod
+    def normalizar_tipo_pesquisa(
+        tipo_pesquisa: str,
+    ):
+        valor = (
+            tipo_pesquisa
+            or "cliente"
+        ).strip().lower()
+
+        if (
+            valor
+            not in NotificacaoService.TIPOS_PESQUISA_VALIDOS
+        ):
+            return "cliente"
+
+        return valor
+
+    @staticmethod
+    def normalizar_pesquisa(
+        pesquisa: str,
+        tipo_pesquisa: str,
+    ):
+        valor = (pesquisa or "").strip()
+
+        if tipo_pesquisa == "telefone":
+            return "".join(
+                caractere
+                for caractere in valor
+                if caractere.isdigit()
+            )[:11]
+
+        if tipo_pesquisa == "placa":
+            return "".join(
+                caractere
+                for caractere in valor
+                if (
+                    caractere.isascii()
+                    and caractere.isalnum()
+                )
+            ).upper()[:7]
+
+        return valor
+
+    @staticmethod
+    def converter_data_envio_local(
+        data_envio: datetime | None,
+    ):
+        if data_envio is None:
+            return None
+
+        if data_envio.tzinfo is None:
+            data_envio = data_envio.replace(
+                tzinfo=timezone.utc
+            )
+
+        return data_envio.astimezone(
+            NotificacaoService.FUSO_BRASIL
+        )
+
+    @staticmethod
+    def preparar_dados_exibicao(
+        notificacao: Notificacao,
+        data_referencia: date | None = None,
+    ):
+        if notificacao is None:
+            return None
+
+        if data_referencia is None:
+            data_referencia = (
+                NotificacaoService.data_atual()
+            )
+
+        data_agendada = (
+            notificacao.data_agendada_disparo
+        )
+
+        diferenca_dias = 0
+
+        if data_agendada is not None:
+            diferenca_dias = (
+                data_agendada
+                - data_referencia
+            ).days
+
+        atrasada = (
+            notificacao.status == "PENDENTE"
+            and data_agendada is not None
+            and diferenca_dias < 0
+        )
+
+        dias_atraso = (
+            abs(diferenca_dias)
+            if atrasada
+            else 0
+        )
+
+        if data_agendada is None:
+            envio_texto = "-"
+
+        elif atrasada:
+            unidade = (
+                "dia"
+                if dias_atraso == 1
+                else "dias"
+            )
+
+            envio_texto = (
+                f"Atrasada há {dias_atraso} "
+                f"{unidade}"
+            )
+
+        elif diferenca_dias == 0:
+            envio_texto = "Hoje"
+
+        elif diferenca_dias == 1:
+            envio_texto = "Amanhã"
+
+        elif diferenca_dias > 1:
+            envio_texto = (
+                f"Em {diferenca_dias} dias"
+            )
+
+        else:
+            envio_texto = (
+                data_agendada.strftime(
+                    "%d/%m/%Y"
+                )
+            )
+
+        (
+            situacao_texto,
+            situacao_classe,
+        ) = (
+            NotificacaoService
+            .STATUS_APRESENTACAO
+            .get(
+                notificacao.status,
+                (
+                    notificacao.status.title(),
+                    "badge-neutral",
+                ),
+            )
+        )
+
+        notificacao.envio_texto = envio_texto
+        notificacao.atrasada = atrasada
+        notificacao.dias_atraso = dias_atraso
+
+        notificacao.data_envio_local = (
+            NotificacaoService
+            .converter_data_envio_local(
+                notificacao.data_envio
+            )
+        )
+
+        notificacao.situacao_texto = (
+            situacao_texto
+        )
+
+        notificacao.situacao_classe = (
+            situacao_classe
+        )
+
+        return notificacao
+
+    @staticmethod
+    def consultar_notificacoes(
+        fila: str = "todas",
+        situacao: str = "todas",
+        data_inicial: date | None = None,
+        data_final: date | None = None,
+        tipo_pesquisa: str = "cliente",
+        pesquisa: str = "",
+        data_referencia: date | None = None,
+    ):
+        if data_referencia is None:
+            data_referencia = (
+                NotificacaoService.data_atual()
+            )
+
+        fila = (
+            NotificacaoService
+            .normalizar_fila(
+                fila
+            )
+        )
+
+        situacao = (
+            NotificacaoService
+            .normalizar_situacao(
+                situacao
+            )
+        )
+
+        tipo_pesquisa = (
+            NotificacaoService
+            .normalizar_tipo_pesquisa(
+                tipo_pesquisa
+            )
+        )
+
+        pesquisa_original = (
+            pesquisa or ""
+        ).strip()
+
+        pesquisa = (
+            NotificacaoService
+            .normalizar_pesquisa(
+                pesquisa_original,
+                tipo_pesquisa,
+            )
+        )
+
+        if (
+            pesquisa_original
+            and not pesquisa
+        ):
+            return []
+
+        notificacoes = (
+            NotificacaoRepository.consultar(
+                fila=fila,
+                situacao=situacao,
+                data_inicial=data_inicial,
+                data_final=data_final,
+                tipo_pesquisa=tipo_pesquisa,
+                pesquisa=pesquisa,
+                data_referencia=data_referencia,
+            )
+        )
+
+        return [
+            NotificacaoService
+            .preparar_dados_exibicao(
+                notificacao,
+                data_referencia,
+            )
+            for notificacao
+            in notificacoes
+        ]
+
+    @staticmethod
+    def obter_indicadores(
+        data_referencia: date | None = None,
+    ):
+        if data_referencia is None:
+            data_referencia = (
+                NotificacaoService.data_atual()
+            )
+
+        inicio_local = datetime.combine(
+            data_referencia,
+            time.min,
+            tzinfo=NotificacaoService.FUSO_BRASIL,
+        )
+
+        fim_local = (
+            inicio_local
+            + timedelta(days=1)
+        )
+
+        return (
+            NotificacaoRepository
+            .obter_indicadores(
+                data_referencia=data_referencia,
+                inicio_dia_utc=(
+                    inicio_local.astimezone(
+                        timezone.utc
+                    )
+                ),
+                fim_dia_utc=(
+                    fim_local.astimezone(
+                        timezone.utc
+                    )
+                ),
+            )
+        )
+
+    @staticmethod
+    def buscar_notificacao_para_visualizacao(
+        notificacao_id: int,
+    ):
+        notificacao = (
+            NotificacaoRepository
+            .buscar_por_id(
+                notificacao_id
+            )
+        )
+
+        return (
+            NotificacaoService
+            .preparar_dados_exibicao(
+                notificacao
+            )
+        )
+
     @staticmethod
     def listar_notificacoes_disponiveis():
         return (
             OrdemServico.query
             .filter(
                 (
-                    OrdemServico.proxima_troca_km
+                    OrdemServico
+                    .proxima_troca_km
                     .isnot(None)
                 )
                 | (
-                    OrdemServico.proxima_troca_data
+                    OrdemServico
+                    .proxima_troca_data
                     .isnot(None)
                 )
             )
             .order_by(
-                OrdemServico.proxima_troca_data.asc(),
+                OrdemServico
+                .proxima_troca_data
+                .asc(),
                 OrdemServico.id.desc(),
             )
             .all()
         )
 
     @staticmethod
-    def buscar_ordem(
-        ordem_id: int,
-    ):
-        return OrdemServico.query.get(
-            ordem_id
+    def buscar_ordem(ordem_id: int):
+        return db.session.get(
+            OrdemServico,
+            ordem_id,
         )
 
     @staticmethod
@@ -69,7 +440,10 @@ class NotificacaoService:
             f"Placa: {ordem.placa}",
         ]
 
-        if ordem.proxima_troca_km is not None:
+        if (
+            ordem.proxima_troca_km
+            is not None
+        ):
             linhas.append(
                 (
                     "Próxima troca prevista em: "
@@ -77,7 +451,10 @@ class NotificacaoService:
                 )
             )
 
-        if ordem.proxima_troca_data is not None:
+        if (
+            ordem.proxima_troca_data
+            is not None
+        ):
             data_formatada = (
                 ordem.proxima_troca_data
                 .strftime(
@@ -148,7 +525,7 @@ class NotificacaoService:
         )
 
         return (
-            f"https://wa.me/"
+            "https://wa.me/"
             f"{telefone_normalizado}"
             f"?text={mensagem_codificada}"
         )
@@ -198,21 +575,16 @@ class NotificacaoService:
     def garantir_notificacao(
         ordem: OrdemServico,
     ):
-        """
-        Garante que uma ordem de serviço possua
-        uma notificação vinculada.
-
-        Este método não define ainda se a
-        notificação ficará PENDENTE ou CANCELADA.
-        """
-
         if ordem is None:
             return None
 
         if ordem.id is None:
             return None
 
-        if ordem.proxima_troca_data is None:
+        if (
+            ordem.proxima_troca_data
+            is None
+        ):
             return None
 
         notificacao = (
@@ -225,9 +597,7 @@ class NotificacaoService:
         if notificacao is None:
             data_agendada = (
                 ordem.proxima_troca_data
-                - timedelta(
-                    days=7
-                )
+                - timedelta(days=7)
             )
 
             notificacao = Notificacao(
@@ -264,21 +634,16 @@ class NotificacaoService:
         notificacao: Notificacao,
         ordem: OrdemServico,
     ):
-        """
-        Atualiza a previsão armazenada em uma
-        notificação que ainda não foi enviada.
-
-        Notificações já enviadas são preservadas
-        como histórico do que realmente ocorreu.
-        """
-
         if notificacao is None:
             return None
 
         if ordem is None:
             return notificacao
 
-        if notificacao.status == "ENVIADO":
+        if (
+            notificacao.status
+            == "ENVIADO"
+        ):
             return notificacao
 
         notificacao.cliente_id = (
@@ -287,9 +652,7 @@ class NotificacaoService:
 
         notificacao.data_agendada_disparo = (
             ordem.proxima_troca_data
-            - timedelta(
-                days=7
-            )
+            - timedelta(days=7)
         )
 
         notificacao.mensagem = (
@@ -307,11 +670,6 @@ class NotificacaoService:
     def sincronizar_com_ordem(
         ordem: OrdemServico,
     ):
-        """
-        Sincroniza uma notificação individual com
-        os dados atuais de sua ordem.
-        """
-
         if ordem is None:
             return None
 
@@ -337,17 +695,6 @@ class NotificacaoService:
     def sincronizar_historico_placa(
         placa: str,
     ):
-        """
-        Sincroniza as notificações de todo o
-        histórico de um veículo.
-
-        As ordens antigas ficam CANCELADAS e
-        somente a ordem mais recente mantém uma
-        notificação ativa.
-
-        Notificações já ENVIADAS não são alteradas.
-        """
-
         if not placa:
             return {
                 "total_ordens": 0,
@@ -366,7 +713,9 @@ class NotificacaoService:
                 == placa_normalizada
             )
             .order_by(
-                OrdemServico.data_servico.asc(),
+                OrdemServico
+                .data_servico
+                .asc(),
                 OrdemServico.id.asc(),
             )
             .all()
@@ -395,7 +744,10 @@ class NotificacaoService:
             if notificacao is None:
                 continue
 
-            if notificacao.status == "ENVIADO":
+            if (
+                notificacao.status
+                == "ENVIADO"
+            ):
                 continue
 
             NotificacaoService \
@@ -404,7 +756,10 @@ class NotificacaoService:
                     ordem,
                 )
 
-            if ordem.id == ultima_ordem.id:
+            if (
+                ordem.id
+                == ultima_ordem.id
+            ):
                 notificacao.status = (
                     "PENDENTE"
                 )
@@ -436,11 +791,6 @@ class NotificacaoService:
     def cancelar_notificacoes_anteriores(
         ordem: OrdemServico,
     ):
-        """
-        Mantido para compatibilidade com outras
-        partes do sistema.
-        """
-
         if ordem is None:
             return 0
 
@@ -459,15 +809,13 @@ class NotificacaoService:
     def criar_para_ordem(
         ordem: OrdemServico,
     ):
-        """
-        Cria a notificação e sincroniza o histórico
-        completo da placa.
-        """
-
         if ordem is None:
             return None
 
-        if ordem.proxima_troca_data is None:
+        if (
+            ordem.proxima_troca_data
+            is None
+        ):
             return None
 
         notificacao = (
@@ -493,12 +841,18 @@ class NotificacaoService:
                 "Notificação não informada."
             )
 
-        if notificacao.status == "ENVIADO":
+        if (
+            notificacao.status
+            == "ENVIADO"
+        ):
             raise ValueError(
                 "Esta notificação já foi enviada."
             )
 
-        if notificacao.status == "CANCELADO":
+        if (
+            notificacao.status
+            == "CANCELADO"
+        ):
             raise ValueError(
                 "Esta notificação foi cancelada."
             )
@@ -519,6 +873,17 @@ class NotificacaoService:
             raise ValueError(
                 "A ordem de serviço não possui "
                 "um cliente."
+            )
+
+        if not cliente.ativo:
+            raise ValueError(
+                "O cliente está desativado."
+            )
+
+        if not cliente.recebe_notificacao:
+            raise ValueError(
+                "O cliente não está autorizado "
+                "a receber notificações."
             )
 
         if not cliente.telefone:
@@ -586,7 +951,7 @@ class NotificacaoService:
     ):
         if data_referencia is None:
             data_referencia = (
-                date.today()
+                NotificacaoService.data_atual()
             )
 
         notificacoes = (
@@ -618,9 +983,7 @@ class NotificacaoService:
                         "notificacao_id": (
                             notificacao.id
                         ),
-                        "status": (
-                            "ENVIADO"
-                        ),
+                        "status": "ENVIADO",
                         "erro": None,
                     }
                 )
@@ -633,19 +996,14 @@ class NotificacaoService:
                         "notificacao_id": (
                             notificacao.id
                         ),
-                        "status": (
-                            "FALHA"
-                        ),
-                        "erro": str(
-                            erro
-                        ),
+                        "status": "FALHA",
+                        "erro": str(erro),
                     }
                 )
 
         return {
             "data_referencia": (
-                data_referencia
-                .isoformat()
+                data_referencia.isoformat()
             ),
             "total": total,
             "enviados": enviados,

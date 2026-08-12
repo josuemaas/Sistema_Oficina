@@ -139,6 +139,21 @@
                     Ordens de Serviço
                 </a>
 
+                <a
+                    href="{{ url_for('notificacao_web.listar') }}"
+                    class="sidebar-navigation-link
+                    {% if request.endpoint
+                        and request.endpoint.startswith('notificacao_web.') %}
+                        is-active
+                    {% endif %}"
+                    {% if request.endpoint
+                        and request.endpoint.startswith('notificacao_web.') %}
+                        aria-current="page"
+                    {% endif %}
+                >
+                    Notificações
+                </a>
+
             </nav>
 
             <div class="sidebar-footer">
@@ -165,39 +180,6 @@
 
         <div class="app-main">
 
-            <header class="app-topbar">
-
-                <div class="topbar-content">
-
-                    <button
-                        type="button"
-                        class="sidebar-toggle"
-                        id="sidebarToggle"
-                        aria-label="Abrir ou fechar menu"
-                        aria-controls="appSidebar"
-                        aria-expanded="false"
-                    >
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </button>
-
-                    <div class="topbar-identification">
-
-                        <span class="topbar-system-name">
-                            Gestão de oficina
-                        </span>
-
-                        <span class="topbar-system-description">
-                            Central de clientes, ordens e serviços
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </header>
-
             <main class="app-content">
 
                 <div class="content-container">
@@ -206,6 +188,19 @@
                         class="page-breadcrumb"
                         aria-label="Navegação estrutural"
                     >
+                        <button
+                            type="button"
+                            class="sidebar-toggle"
+                            id="sidebarToggle"
+                            aria-label="Abrir ou fechar menu"
+                            aria-controls="appSidebar"
+                            aria-expanded="false"
+                        >
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+
                         {% block breadcrumb %}
                             <a
                                 href="{{ url_for('dashboard_web.index') }}"

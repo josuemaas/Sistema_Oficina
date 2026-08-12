@@ -85,7 +85,9 @@
         return null;
     }
 
-    document.querySelectorAll("[data-mask-text]").forEach(
+    document.querySelectorAll(
+        "[data-mask-text]"
+    ).forEach(
         function (elemento) {
             const formatador = obterFormatadorTexto(
                 elemento.dataset.maskText
@@ -97,7 +99,9 @@
         }
     );
 
-    document.querySelectorAll("[data-mask-input]").forEach(
+    document.querySelectorAll(
+        "[data-mask-input]"
+    ).forEach(
         function (campo) {
             const formatador = obterFormatadorEntrada(
                 campo.dataset.maskInput
@@ -107,12 +111,33 @@
                 return;
             }
 
-            campo.value = formatador(campo.value);
+            campo.value = formatador(
+                campo.value
+            );
 
             campo.addEventListener(
                 "input",
                 function () {
-                    campo.value = formatador(campo.value);
+                    campo.value = formatador(
+                        campo.value
+                    );
+                }
+            );
+
+            campo.addEventListener(
+                "paste",
+                function (evento) {
+                    if (!evento.clipboardData) {
+                        return;
+                    }
+
+                    evento.preventDefault();
+
+                    campo.value = formatador(
+                        evento.clipboardData.getData(
+                            "text"
+                        )
+                    );
                 }
             );
 
@@ -160,34 +185,50 @@
         }
 
         const tipoMascara = obterTipoMascaraPesquisa();
+
         const formatador = obterFormatadorEntrada(
             tipoMascara
         );
 
         if (!formatador) {
-            campoPesquisa.removeAttribute("maxlength");
-            campoPesquisa.removeAttribute("inputmode");
+            campoPesquisa.removeAttribute(
+                "maxlength"
+            );
+
+            campoPesquisa.removeAttribute(
+                "inputmode"
+            );
+
             campoPesquisa.placeholder = (
                 "Digite o termo para consulta"
             );
+
             return;
         }
 
         campoPesquisa.maxLength = (
-            tipoMascara === "cpf" ? 14 : 15
+            tipoMascara === "cpf"
+                ? 14
+                : 15
         );
+
         campoPesquisa.inputMode = "numeric";
+
         campoPesquisa.placeholder = (
             tipoMascara === "cpf"
                 ? "000.000.000-00"
                 : "(00) 00000-0000"
         );
+
         campoPesquisa.value = formatador(
             campoPesquisa.value
         );
     }
 
-    if (tipoPesquisa && campoPesquisa) {
+    if (
+        tipoPesquisa
+        && campoPesquisa
+    ) {
         tipoPesquisa.addEventListener(
             "change",
             atualizarMascaraPesquisa
@@ -208,14 +249,44 @@
             }
         );
 
+        campoPesquisa.addEventListener(
+            "paste",
+            function (evento) {
+                const formatador = obterFormatadorEntrada(
+                    obterTipoMascaraPesquisa()
+                );
+
+                if (
+                    !formatador
+                    || !evento.clipboardData
+                ) {
+                    return;
+                }
+
+                evento.preventDefault();
+
+                campoPesquisa.value = formatador(
+                    evento.clipboardData.getData(
+                        "text"
+                    )
+                );
+            }
+        );
+
         if (campoPesquisa.form) {
             campoPesquisa.form.addEventListener(
                 "submit",
                 function () {
-                    if (obterTipoMascaraPesquisa()) {
+                    if (
+                        obterTipoMascaraPesquisa()
+                    ) {
                         campoPesquisa.value = limitarNumeros(
                             campoPesquisa.value,
                             11
+                        );
+                    } else {
+                        campoPesquisa.value = (
+                            campoPesquisa.value.trim()
                         );
                     }
                 }
@@ -243,16 +314,29 @@
         "acaoSelecionarCliente"
     );
 
+    const acaoSituacao = document.getElementById(
+        "acaoSituacaoCliente"
+    );
+
+    const formSituacao = document.getElementById(
+        "formSituacaoCliente"
+    );
+
     function obterClienteSelecionado() {
-        return selecoes.find(
-            function (selecao) {
-                return selecao.checked;
-            }
-        ) || null;
+        return (
+            selecoes.find(
+                function (selecao) {
+                    return selecao.checked;
+                }
+            )
+            || null
+        );
     }
 
     function atualizarAcoes() {
-        const clienteSelecionado = obterClienteSelecionado();
+        const clienteSelecionado = (
+            obterClienteSelecionado()
+        );
 
         selecoes.forEach(
             function (selecao) {
@@ -270,11 +354,15 @@
         );
 
         if (acaoAlterar) {
-            acaoAlterar.disabled = !clienteSelecionado;
+            acaoAlterar.disabled = (
+                !clienteSelecionado
+            );
         }
 
         if (acaoVisualizar) {
-            acaoVisualizar.disabled = !clienteSelecionado;
+            acaoVisualizar.disabled = (
+                !clienteSelecionado
+            );
         }
 
         if (acaoSelecionar) {
@@ -283,6 +371,33 @@
                 || clienteSelecionado.dataset.clienteAtivo
                 !== "true"
             );
+        }
+
+        if (acaoSituacao) {
+            acaoSituacao.disabled = (
+                !clienteSelecionado
+            );
+
+            if (!clienteSelecionado) {
+                acaoSituacao.textContent = (
+                    "Desativar"
+                );
+
+                return;
+            }
+
+            if (
+                clienteSelecionado.dataset.clienteAtivo
+                === "true"
+            ) {
+                acaoSituacao.textContent = (
+                    "Desativar"
+                );
+            } else {
+                acaoSituacao.textContent = (
+                    "Ativar"
+                );
+            }
         }
     }
 
@@ -294,7 +409,10 @@
                     if (selecaoAtual.checked) {
                         selecoes.forEach(
                             function (selecao) {
-                                if (selecao !== selecaoAtual) {
+                                if (
+                                    selecao
+                                    !== selecaoAtual
+                                ) {
                                     selecao.checked = false;
                                 }
                             }
@@ -311,7 +429,9 @@
         acaoAlterar.addEventListener(
             "click",
             function () {
-                const clienteSelecionado = obterClienteSelecionado();
+                const clienteSelecionado = (
+                    obterClienteSelecionado()
+                );
 
                 if (clienteSelecionado) {
                     window.location.href = (
@@ -326,7 +446,9 @@
         acaoVisualizar.addEventListener(
             "click",
             function () {
-                const clienteSelecionado = obterClienteSelecionado();
+                const clienteSelecionado = (
+                    obterClienteSelecionado()
+                );
 
                 if (clienteSelecionado) {
                     window.location.href = (
@@ -341,7 +463,9 @@
         acaoSelecionar.addEventListener(
             "click",
             function () {
-                const clienteSelecionado = obterClienteSelecionado();
+                const clienteSelecionado = (
+                    obterClienteSelecionado()
+                );
 
                 if (
                     clienteSelecionado
@@ -352,6 +476,30 @@
                         clienteSelecionado.dataset.urlSelecionar
                     );
                 }
+            }
+        );
+    }
+
+    if (
+        acaoSituacao
+        && formSituacao
+    ) {
+        acaoSituacao.addEventListener(
+            "click",
+            function () {
+                const clienteSelecionado = (
+                    obterClienteSelecionado()
+                );
+
+                if (!clienteSelecionado) {
+                    return;
+                }
+
+                formSituacao.action = (
+                    clienteSelecionado.dataset.urlSituacao
+                );
+
+                formSituacao.submit();
             }
         );
     }

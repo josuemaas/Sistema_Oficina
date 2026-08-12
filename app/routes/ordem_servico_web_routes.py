@@ -15,6 +15,7 @@ from app.services.cliente_service import (
 from app.services.ordem_servico_service import (
     OrdemServicoService,
 )
+from app.utils.paginacao import paginar_resultados
 
 
 ordem_servico_web_bp = Blueprint(
@@ -535,11 +536,30 @@ def listar():
         tipo_pesquisa,
     )
 
+    pagina_solicitada = request.args.get(
+        "pagina",
+        1,
+        type=int,
+    )
+
+    (
+        ordens,
+        pagina_atual,
+        total_paginas,
+        total_registros,
+    ) = paginar_resultados(
+        ordens,
+        pagina_solicitada,
+    )
+
     return render_template(
         "ordens/lista.html",
         ordens=ordens,
         pesquisa=pesquisa,
         tipo_pesquisa=tipo_pesquisa,
+        pagina_atual=pagina_atual,
+        total_paginas=total_paginas,
+        total_registros=total_registros,
     )
 
 

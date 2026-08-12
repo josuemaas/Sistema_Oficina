@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 
+{% macro url_pagina(numero) -%}
+    {{ url_for(
+        'ordem_servico_web.listar',
+        pagina=numero,
+        tipo_pesquisa=tipo_pesquisa,
+        pesquisa=pesquisa
+    ) }}
+{%- endmacro %}
+
 {% block title %}
 Ordens de Serviço | Sistema da Oficina
 {% endblock %}
@@ -31,172 +40,9 @@ Consulte e gerencie os serviços realizados nos veículos.
 
 <div class="page-section">
 
-    <div class="panel">
-
-        <div class="panel-header">
-
-            <div class="panel-header-content">
-
-                <h2 class="panel-title">
-                    Pesquisa
-                </h2>
-
-                <p class="panel-description">
-                    Consulte por cliente, telefone, placa, marca ou modelo.
-                </p>
-
-            </div>
-
-        </div>
-
-        <div class="panel-body">
-
-            <form
-                method="get"
-                action="{{ url_for('ordem_servico_web.listar') }}"
-                class="page-search"
-            >
-
-                <div class="page-search-field page-search-field-compact">
-
-                    <label
-                        for="tipo_pesquisa"
-                        class="form-label"
-                    >
-                        Pesquisar por
-                    </label>
-
-                    <select
-                        id="tipo_pesquisa"
-                        name="tipo_pesquisa"
-                        class="form-select"
-                        data-order-search-type
-                    >
-                        <option
-                            value="cliente"
-                            {% if tipo_pesquisa == "cliente" %}
-                                selected
-                            {% endif %}
-                        >
-                            Cliente
-                        </option>
-
-                        <option
-                            value="telefone"
-                            {% if tipo_pesquisa == "telefone" %}
-                                selected
-                            {% endif %}
-                        >
-                            Telefone
-                        </option>
-
-                        <option
-                            value="placa"
-                            {% if tipo_pesquisa == "placa" %}
-                                selected
-                            {% endif %}
-                        >
-                            Placa
-                        </option>
-
-                        <option
-                            value="marca"
-                            {% if tipo_pesquisa == "marca" %}
-                                selected
-                            {% endif %}
-                        >
-                            Marca
-                        </option>
-
-                        <option
-                            value="modelo"
-                            {% if tipo_pesquisa == "modelo" %}
-                                selected
-                            {% endif %}
-                        >
-                            Modelo
-                        </option>
-                    </select>
-
-                </div>
-
-                <div class="page-search-field">
-
-                    <label
-                        for="pesquisa"
-                        class="form-label"
-                    >
-                        Termo
-                    </label>
-
-                    <input
-                        type="search"
-                        id="pesquisa"
-                        name="pesquisa"
-                        class="form-control"
-                        value="{{ pesquisa or '' }}"
-                        placeholder="Digite o termo para consulta"
-                        autocomplete="off"
-                        data-order-search-term
-                    >
-
-                </div>
-
-                <div class="page-search-actions">
-
-                    <button
-                        type="submit"
-                        class="button button-primary"
-                    >
-                        <span aria-hidden="true">
-                            &#128269;
-                        </span>
-
-                        Consultar
-                    </button>
-
-                    {% if pesquisa %}
-
-                        <a
-                            href="{{ url_for('ordem_servico_web.listar') }}"
-                            class="button button-neutral"
-                        >
-                            Limpar
-                        </a>
-
-                    {% endif %}
-
-                </div>
-
-            </form>
-
-        </div>
-
-    </div>
-
-</div>
-
-<div class="page-section">
-
 <div class="panel">
 
     <div class="panel-header">
-
-        <div class="panel-header-content">
-
-            <h2 class="panel-title">
-                Ordens cadastradas
-            </h2>
-
-            <p class="panel-description">
-                {% if pesquisa %}
-                    Resultado da pesquisa por “{{ pesquisa }}”.
-                {% else %}
-                    Relação de ordens registradas no sistema.
-                {% endif %}
-            </p>
-
-        </div>
 
         <div class="panel-actions">
 
@@ -242,17 +88,126 @@ Consulte e gerencie os serviços realizados nos veículos.
 
             </div>
 
-            <span class="badge badge-neutral">
-                {{ ordens|length }}
-
-                {% if ordens|length == 1 %}
-                    registro
-                {% else %}
-                    registros
-                {% endif %}
-            </span>
-
         </div>
+
+    </div>
+
+    <div class="panel-body p-3">
+
+        <form
+            method="get"
+            action="{{ url_for('ordem_servico_web.listar') }}"
+            class="page-search"
+        >
+
+            <div class="page-search-field page-search-field-compact">
+
+                <label
+                    for="tipo_pesquisa"
+                    class="form-label"
+                >
+                    Filtro
+                </label>
+
+                <select
+                    id="tipo_pesquisa"
+                    name="tipo_pesquisa"
+                    class="form-select"
+                    data-order-search-type
+                >
+                    <option
+                        value="cliente"
+                        {% if tipo_pesquisa == "cliente" %}
+                            selected
+                        {% endif %}
+                    >
+                        Cliente
+                    </option>
+
+                    <option
+                        value="telefone"
+                        {% if tipo_pesquisa == "telefone" %}
+                            selected
+                        {% endif %}
+                    >
+                        Telefone
+                    </option>
+
+                    <option
+                        value="placa"
+                        {% if tipo_pesquisa == "placa" %}
+                            selected
+                        {% endif %}
+                    >
+                        Placa
+                    </option>
+
+                    <option
+                        value="marca"
+                        {% if tipo_pesquisa == "marca" %}
+                            selected
+                        {% endif %}
+                    >
+                        Marca
+                    </option>
+
+                    <option
+                        value="modelo"
+                        {% if tipo_pesquisa == "modelo" %}
+                            selected
+                        {% endif %}
+                    >
+                        Modelo
+                    </option>
+                </select>
+
+            </div>
+
+            <div class="page-search-field">
+
+                <label
+                    for="pesquisa"
+                    class="visually-hidden"
+                >
+                    Termo
+                </label>
+
+                <input
+                    type="search"
+                    id="pesquisa"
+                    name="pesquisa"
+                    class="form-control"
+                    value="{{ pesquisa or '' }}"
+                    placeholder="Digite o termo para consulta"
+                    autocomplete="off"
+                    data-order-search-term
+                >
+
+            </div>
+
+            <div class="page-search-actions">
+
+                <button
+                    type="submit"
+                    class="button button-secondary button-small"
+                >
+                    <span aria-hidden="true">
+                        &#128269;
+                    </span>
+
+                    Consultar
+                </button>
+
+                <a
+                    href="{{ url_for('ordem_servico_web.listar') }}"
+                    class="button button-neutral button-small"
+                >
+                    Limpar
+                </a>
+
+            </div>
+
+        </form>
 
     </div>
 
@@ -264,7 +219,7 @@ Consulte e gerencie os serviços realizados nos veículos.
 
     {% if ordens %}
 
-        <div class="table-container">
+        <div class="table-container rounded-0 border-0 shadow-none">
 
             <table class="system-table">
 
@@ -458,6 +413,150 @@ Consulte e gerencie os serviços realizados nos veículos.
         </div>
 
     {% endif %}
+
+    <div class="table-footer">
+
+        <div class="table-footer-navigation">
+
+            {% if total_paginas > 1 %}
+
+                <nav
+                    class="table-pagination"
+                    aria-label="Paginação de ordens de serviço"
+                >
+
+                    {% if pagina_atual > 1 %}
+
+                        <a
+                            href="{{ url_pagina(pagina_atual - 1) }}"
+                            class="pagination-link"
+                            aria-label="Página anterior"
+                            rel="prev"
+                        >
+                            ‹
+                        </a>
+
+                    {% else %}
+
+                        <span
+                            class="pagination-link is-disabled"
+                            aria-disabled="true"
+                            aria-label="Página anterior"
+                        >
+                            ‹
+                        </span>
+
+                    {% endif %}
+
+                    {% for numero_pagina in range(1, total_paginas + 1) %}
+
+                        {% if numero_pagina == pagina_atual %}
+
+                            <span
+                                class="pagination-link is-active"
+                                aria-current="page"
+                            >
+                                {{ numero_pagina }}
+                            </span>
+
+                        {% else %}
+
+                            <a
+                                href="{{ url_pagina(numero_pagina) }}"
+                                class="pagination-link"
+                            >
+                                {{ numero_pagina }}
+                            </a>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                    {% if pagina_atual < total_paginas %}
+
+                        <a
+                            href="{{ url_pagina(pagina_atual + 1) }}"
+                            class="pagination-link"
+                            aria-label="Próxima página"
+                            rel="next"
+                        >
+                            ›
+                        </a>
+
+                    {% else %}
+
+                        <span
+                            class="pagination-link is-disabled"
+                            aria-disabled="true"
+                            aria-label="Próxima página"
+                        >
+                            ›
+                        </span>
+
+                    {% endif %}
+
+                </nav>
+
+                <form
+                    method="get"
+                    action="{{ url_for('ordem_servico_web.listar') }}"
+                    class="pagination-jump"
+                >
+
+                    <input
+                        type="hidden"
+                        name="tipo_pesquisa"
+                        value="{{ tipo_pesquisa }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="pesquisa"
+                        value="{{ pesquisa }}"
+                    >
+
+                    <label for="pagina_ordens">
+                        Página
+                    </label>
+
+                    <input
+                        type="number"
+                        id="pagina_ordens"
+                        name="pagina"
+                        class="form-control pagination-input"
+                        value="{{ pagina_atual }}"
+                        min="1"
+                        max="{{ total_paginas }}"
+                        required
+                    >
+
+                    <span>
+                        de {{ total_paginas }}
+                    </span>
+
+                    <button
+                        type="submit"
+                        class="pagination-link"
+                    >
+                        Ir
+                    </button>
+
+                </form>
+
+            {% endif %}
+
+        </div>
+
+        <span class="table-footer-information">
+            {{ total_registros }}
+            {% if total_registros == 1 %}
+                registro
+            {% else %}
+                registros
+            {% endif %}
+        </span>
+
+    </div>
 
 </div>
 

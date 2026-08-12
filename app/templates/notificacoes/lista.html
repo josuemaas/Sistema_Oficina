@@ -1,177 +1,558 @@
 {% extends "base.html" %}
 
+{% macro url_pagina(numero) -%}
+    {{ url_for(
+        'notificacao_web.listar',
+        pagina=numero,
+        situacao=situacao,
+        tipo_pesquisa=tipo_pesquisa,
+        pesquisa=pesquisa
+    ) }}
+{%- endmacro %}
+
 {% block title %}
 Notificações | Sistema da Oficina
 {% endblock %}
 
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard_web.index') }}" class="breadcrumb-link">
+    Início
+</a>
+<span>›</span>
+<span>Notificações</span>
+{% endblock %}
+
+{% block page_title %}
+Notificações
+{% endblock %}
+
+{% block page_description %}
+Acompanhe os avisos programados e enviados aos clientes.
+{% endblock %}
+
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="h2 mb-1">
-            Notificações
-        </h1>
+<div class="page-section">
 
-        <p class="text-muted mb-0">
-            Visualize e envie lembretes de manutenção
-            aos clientes.
-        </p>
-    </div>
-</div>
+    <div class="panel">
 
-{% with mensagens = get_flashed_messages(with_categories=true) %}
-    {% for categoria, mensagem in mensagens %}
-        <div
-            class="alert alert-{{ categoria }} alert-dismissible fade show"
-            role="alert"
-        >
-            {{ mensagem }}
+        <div class="d-flex align-items-center px-3 py-2 border-bottom">
 
             <button
                 type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Fechar"
-            ></button>
+                class="button button-secondary button-small"
+                id="acaoVisualizarNotificacao"
+                disabled
+            >
+                Visualizar
+            </button>
+
         </div>
-    {% endfor %}
-{% endwith %}
 
-<div class="alert alert-info">
-    Nesta etapa, o botão abre o WhatsApp com a mensagem
-    preenchida. O envio automático pela API será conectado
-    posteriormente.
-</div>
+        <div class="panel-body p-3">
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        {% if ordens %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <form
+                method="get"
+                action="{{ url_for('notificacao_web.listar') }}"
+                class="page-search"
+            >
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="situacao"
+                        class="form-label"
+                    >
+                        Situação
+                    </label>
+
+                    <select
+                        id="situacao"
+                        name="situacao"
+                        class="form-select"
+                    >
+                        <option
+                            value="todas"
+                            {% if situacao == "todas" %}selected{% endif %}
+                        >
+                            Todas
+                        </option>
+
+                        <option
+                            value="PENDENTE"
+                            {% if situacao == "PENDENTE" %}selected{% endif %}
+                        >
+                            Pendentes
+                        </option>
+
+                        <option
+                            value="ENVIADO"
+                            {% if situacao == "ENVIADO" %}selected{% endif %}
+                        >
+                            Enviadas
+                        </option>
+
+                        <option
+                            value="FALHA"
+                            {% if situacao == "FALHA" %}selected{% endif %}
+                        >
+                            Falhas
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="tipo_pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar por
+                    </label>
+
+                    <select
+                        id="tipo_pesquisa"
+                        name="tipo_pesquisa"
+                        class="form-select"
+                        data-notificacao-search-type
+                    >
+                        <option
+                            value="cliente"
+                            {% if tipo_pesquisa == "cliente" %}selected{% endif %}
+                        >
+                            Cliente
+                        </option>
+
+                        <option
+                            value="telefone"
+                            {% if tipo_pesquisa == "telefone" %}selected{% endif %}
+                        >
+                            Telefone
+                        </option>
+
+                        <option
+                            value="placa"
+                            {% if tipo_pesquisa == "placa" %}selected{% endif %}
+                        >
+                            Placa
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="page-search-field">
+
+                    <label
+                        for="pesquisa"
+                        class="visually-hidden"
+                    >
+                        Termo da pesquisa
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Digite o termo para consulta"
+                        autocomplete="off"
+                        data-notificacao-search-term
+                    >
+
+                </div>
+
+                <div class="page-search-actions">
+
+                    <button
+                        type="submit"
+                        class="button button-secondary button-small"
+                    >
+                        <span aria-hidden="true">&#128269;</span>
+                        Consultar
+                    </button>
+
+                    <a
+                        href="{{ url_for('notificacao_web.listar') }}"
+                        class="button button-neutral button-small"
+                    >
+                        Limpar
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        {% if notificacoes %}
+
+            <div class="table-container rounded-0 border-0 shadow-none">
+
+                <table class="system-table">
+
                     <thead>
+
                         <tr>
-                            <th>Cliente</th>
-                            <th>Telefone</th>
-                            <th>Veículo</th>
-                            <th>Próxima troca</th>
-                            <th>Autorização</th>
-                            <th class="text-end">
-                                Ações
+
+                            <th class="column-select">
+                                <span class="visually-hidden">
+                                    Selecionar
+                                </span>
                             </th>
+
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Telefone
+                            </th>
+
+                            <th>
+                                Placa
+                            </th>
+
+                            <th>
+                                Próxima troca prevista
+                            </th>
+
+                            <th>
+                                Data programada para envio
+                            </th>
+
+                            <th>
+                                Envio
+                            </th>
+
+                            <th>
+                                Situação
+                            </th>
+
+                            <th>
+                                Tentativas
+                            </th>
+
                         </tr>
+
                     </thead>
 
                     <tbody>
-                        {% for ordem in ordens %}
-                            <tr>
-                                <td>
-                                    {% if ordem.veiculo
-                                        and ordem.veiculo.cliente %}
-                                        <strong>
-                                            {{ ordem.veiculo.cliente.nome }}
-                                        </strong>
-                                    {% else %}
-                                        -
-                                    {% endif %}
+
+                        {% for notificacao in notificacoes %}
+
+                            {% set cliente = notificacao.cliente %}
+                            {% set ordem = notificacao.ordem_servico %}
+
+                            <tr data-notificacao-row>
+
+                                <td class="column-select">
+
+                                    <input
+                                        type="checkbox"
+                                        class="table-selection"
+                                        data-notificacao-selection
+                                        data-url-visualizar="{{ url_for(
+                                            'notificacao_web.visualizar',
+                                            notificacao_id=notificacao.id
+                                        ) }}"
+                                        aria-label="Selecionar notificação {{ notificacao.id }}"
+                                    >
+
                                 </td>
 
                                 <td>
-                                    {% if ordem.veiculo
-                                        and ordem.veiculo.cliente %}
-                                        {{ ordem.veiculo.cliente.telefone }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
+
+                                    <span class="table-primary-text">
+                                        {{ cliente.nome if cliente else "-" }}
+                                    </span>
+
                                 </td>
 
                                 <td>
-                                    {% if ordem.veiculo %}
-                                        <strong>
-                                            {{ ordem.veiculo.marca }}
-                                            {{ ordem.veiculo.modelo }}
-                                        </strong>
 
-                                        <br>
+                                    {% if cliente and cliente.telefone %}
 
-                                        <small class="text-muted">
-                                            {{ ordem.veiculo.placa }}
-                                        </small>
+                                        <span data-notificacao-telefone>
+                                            {{ cliente.telefone }}
+                                        </span>
+
                                     {% else %}
+
                                         -
+
                                     {% endif %}
+
                                 </td>
 
                                 <td>
-                                    {% if ordem.proxima_troca_km %}
-                                        {{ ordem.proxima_troca_km }} km
+                                    {{ ordem.placa if ordem else "-" }}
+                                </td>
+
+                                <td>
+
+                                    {% if ordem and ordem.proxima_troca_km is not none %}
+
+                                        <span class="table-primary-text">
+                                            {{ "{:,}".format(
+                                                ordem.proxima_troca_km
+                                            ).replace(",", ".") }} km
+                                        </span>
+
                                     {% endif %}
 
-                                    {% if ordem.proxima_troca_data %}
-                                        <br>
+                                    {% if ordem and ordem.proxima_troca_data %}
 
-                                        <small class="text-muted">
+                                        <span class="table-secondary-text">
                                             {{ ordem.proxima_troca_data.strftime(
                                                 "%d/%m/%Y"
                                             ) }}
-                                        </small>
+                                        </span>
+
+                                    {% elif not ordem or ordem.proxima_troca_km is none %}
+
+                                        -
+
                                     {% endif %}
+
                                 </td>
 
                                 <td>
-                                    {% if ordem.veiculo
-                                        and ordem.veiculo.cliente
-                                        and ordem.veiculo.cliente.recebe_notificacao %}
-                                        <span class="badge text-bg-success">
-                                            Autorizada
-                                        </span>
+
+                                    {% if notificacao.data_agendada_disparo %}
+
+                                        {{ notificacao.data_agendada_disparo.strftime(
+                                            "%d/%m/%Y"
+                                        ) }}
+
                                     {% else %}
-                                        <span class="badge text-bg-secondary">
-                                            Não autorizada
-                                        </span>
+
+                                        -
+
                                     {% endif %}
+
                                 </td>
 
-                                <td class="text-end">
-                                    {% if ordem.veiculo
-                                        and ordem.veiculo.cliente
-                                        and ordem.veiculo.cliente.recebe_notificacao %}
-                                        <a
-                                            href="{{ url_for(
-                                                'notificacao_web.visualizar',
-                                                ordem_id=ordem.id
-                                            ) }}"
-                                            class="btn btn-sm btn-outline-success"
-                                        >
-                                            Preparar mensagem
-                                        </a>
-                                    {% else %}
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-secondary"
-                                            disabled
-                                        >
-                                            Sem autorização
-                                        </button>
-                                    {% endif %}
+                                <td>
+                                    {{ notificacao.envio_texto }}
                                 </td>
+
+                                <td>
+
+                                    <span class="badge {{ notificacao.situacao_classe }}">
+                                        {{ notificacao.situacao_texto }}
+                                    </span>
+
+                                    {% if notificacao.atrasada %}
+
+                                        <span class="badge badge-danger">
+
+                                            {% if notificacao.dias_atraso == 1 %}
+
+                                                Atrasada há 1 dia
+
+                                            {% else %}
+
+                                                Atrasada há {{ notificacao.dias_atraso }} dias
+
+                                            {% endif %}
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ notificacao.tentativas }}
+                                </td>
+
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="text-center py-5">
-                <h5>
-                    Nenhuma notificação disponível
-                </h5>
 
-                <p class="text-muted mb-0">
-                    Cadastre uma próxima troca em uma ordem
-                    de serviço para gerar o lembrete.
-                </p>
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
             </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <h3 class="empty-state-title">
+                    Nenhum resultado
+                </h3>
+
+            </div>
+
         {% endif %}
+
+        <div class="table-footer">
+
+            <div class="table-footer-navigation">
+
+                {% if total_paginas > 1 %}
+
+                    <nav
+                        class="table-pagination"
+                        aria-label="Paginação de notificações"
+                    >
+
+                        {% if pagina_atual > 1 %}
+
+                            <a
+                                href="{{ url_pagina(pagina_atual - 1) }}"
+                                class="pagination-link"
+                                aria-label="Página anterior"
+                                rel="prev"
+                            >
+                                ‹
+                            </a>
+
+                        {% else %}
+
+                            <span
+                                class="pagination-link is-disabled"
+                                aria-disabled="true"
+                                aria-label="Página anterior"
+                            >
+                                ‹
+                            </span>
+
+                        {% endif %}
+
+                        {% for numero_pagina in range(1, total_paginas + 1) %}
+
+                            {% if numero_pagina == pagina_atual %}
+
+                                <span
+                                    class="pagination-link is-active"
+                                    aria-current="page"
+                                >
+                                    {{ numero_pagina }}
+                                </span>
+
+                            {% else %}
+
+                                <a
+                                    href="{{ url_pagina(numero_pagina) }}"
+                                    class="pagination-link"
+                                >
+                                    {{ numero_pagina }}
+                                </a>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                        {% if pagina_atual < total_paginas %}
+
+                            <a
+                                href="{{ url_pagina(pagina_atual + 1) }}"
+                                class="pagination-link"
+                                aria-label="Próxima página"
+                                rel="next"
+                            >
+                                ›
+                            </a>
+
+                        {% else %}
+
+                            <span
+                                class="pagination-link is-disabled"
+                                aria-disabled="true"
+                                aria-label="Próxima página"
+                            >
+                                ›
+                            </span>
+
+                        {% endif %}
+
+                    </nav>
+
+                    <form
+                        method="get"
+                        action="{{ url_for('notificacao_web.listar') }}"
+                        class="pagination-jump"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="situacao"
+                            value="{{ situacao }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="tipo_pesquisa"
+                            value="{{ tipo_pesquisa }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="pesquisa"
+                            value="{{ pesquisa }}"
+                        >
+
+                        <label for="pagina_notificacoes">
+                            Página
+                        </label>
+
+                        <input
+                            type="number"
+                            id="pagina_notificacoes"
+                            name="pagina"
+                            class="form-control pagination-input"
+                            value="{{ pagina_atual }}"
+                            min="1"
+                            max="{{ total_paginas }}"
+                            required
+                        >
+
+                        <span>
+                            de {{ total_paginas }}
+                        </span>
+
+                        <button
+                            type="submit"
+                            class="pagination-link"
+                        >
+                            Ir
+                        </button>
+
+                    </form>
+
+                {% endif %}
+
+            </div>
+
+            <span class="table-footer-information">
+
+                {{ total_registros }}
+
+                {% if total_registros == 1 %}
+                    registro
+                {% else %}
+                    registros
+                {% endif %}
+
+            </span>
+
+        </div>
+
     </div>
+
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script
+    src="{{ url_for('static', filename='js/notificacoes.js') }}"
+></script>
 
 {% endblock %}

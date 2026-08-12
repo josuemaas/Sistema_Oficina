@@ -1,5 +1,27 @@
 {% extends "base.html" %}
 
+{% macro url_pagina(numero) -%}
+    {%- if modo == "selecionar" -%}
+        {{ url_for(
+            'cliente_web.listar',
+            pagina=numero,
+            situacao=situacao,
+            tipo_pesquisa=tipo_pesquisa,
+            pesquisa=pesquisa,
+            modo='selecionar',
+            ordem_id=ordem_id
+        ) }}
+    {%- else -%}
+        {{ url_for(
+            'cliente_web.listar',
+            pagina=numero,
+            situacao=situacao,
+            tipo_pesquisa=tipo_pesquisa,
+            pesquisa=pesquisa
+        ) }}
+    {%- endif -%}
+{%- endmacro %}
+
 {% if modo == "selecionar" %}
     {% if ordem_id %}
         {% set retorno_ordem_url = url_for(
@@ -58,16 +80,18 @@ Consulte e gerencie os clientes cadastrados na oficina.
 {% endblock %}
 
 {% block page_actions %}
+
 {% if modo == "selecionar" %}
 
-<a
-    href="{{ retorno_ordem_url }}"
-    class="button button-neutral"
->
-    Retornar
-</a>
+    <a
+        href="{{ retorno_ordem_url }}"
+        class="button button-neutral"
+    >
+        Retornar
+    </a>
 
 {% endif %}
+
 {% endblock %}
 
 {% block content %}
@@ -77,181 +101,6 @@ Consulte e gerencie os clientes cadastrados na oficina.
     <div class="panel">
 
         <div class="panel-header">
-
-            <div class="panel-header-content">
-
-                <h2 class="panel-title">
-                    Pesquisa
-                </h2>
-
-                <p class="panel-description">
-                    Consulte por nome, CPF ou telefone.
-                </p>
-
-            </div>
-
-        </div>
-
-        <div class="panel-body">
-
-            <form
-                method="get"
-                action="{{ url_for('cliente_web.listar') }}"
-                class="page-search"
-            >
-
-                {% if modo == "selecionar" %}
-
-                    <input
-                        type="hidden"
-                        name="modo"
-                        value="selecionar"
-                    >
-
-                    {% if ordem_id %}
-
-                        <input
-                            type="hidden"
-                            name="ordem_id"
-                            value="{{ ordem_id }}"
-                        >
-
-                    {% endif %}
-
-                {% endif %}
-
-                <div class="page-search-field page-search-field-compact">
-
-                    <label
-                        for="tipo_pesquisa"
-                        class="form-label"
-                    >
-                        Pesquisar por
-                    </label>
-
-                    <select
-                        id="tipo_pesquisa"
-                        name="tipo_pesquisa"
-                        class="form-select"
-                        data-client-search-type
-                    >
-                        <option
-                            value="nome"
-                            {% if tipo_pesquisa == "nome" %}
-                                selected
-                            {% endif %}
-                        >
-                            Nome
-                        </option>
-
-                        <option
-                            value="cpf"
-                            {% if tipo_pesquisa == "cpf" %}
-                                selected
-                            {% endif %}
-                        >
-                            CPF
-                        </option>
-
-                        <option
-                            value="telefone"
-                            {% if tipo_pesquisa == "telefone" %}
-                                selected
-                            {% endif %}
-                        >
-                            Telefone
-                        </option>
-                    </select>
-
-                </div>
-
-                <div class="page-search-field">
-
-                    <label
-                        for="pesquisa"
-                        class="form-label"
-                    >
-                        Termo
-                    </label>
-
-                    <input
-                        type="search"
-                        id="pesquisa"
-                        name="pesquisa"
-                        class="form-control"
-                        value="{{ pesquisa or '' }}"
-                        placeholder="Digite o termo para consulta"
-                        autocomplete="off"
-                        data-client-search-term
-                    >
-
-                </div>
-
-                <div class="page-search-actions">
-
-                    <button
-                        type="submit"
-                        class="button button-primary"
-                    >
-                        <span aria-hidden="true">
-                            &#128269;
-                        </span>
-
-                        Consultar
-                    </button>
-
-                    {% if pesquisa %}
-
-                        <a
-                            href="{{ url_for(
-                                'cliente_web.listar',
-                                modo=modo,
-                                ordem_id=ordem_id
-                            ) if modo == 'selecionar' else url_for(
-                                'cliente_web.listar'
-                            ) }}"
-                            class="button button-neutral"
-                        >
-                            Limpar
-                        </a>
-
-                    {% endif %}
-
-                </div>
-
-            </form>
-
-        </div>
-
-    </div>
-
-</div>
-
-<div class="page-section">
-
-    <div class="panel">
-
-        <div class="panel-header">
-
-            <div class="panel-header-content">
-
-                <h2 class="panel-title">
-                    {% if modo == "selecionar" %}
-                        Clientes disponíveis
-                    {% else %}
-                        Clientes cadastrados
-                    {% endif %}
-                </h2>
-
-                <p class="panel-description">
-                    {% if pesquisa %}
-                        Resultado da pesquisa por “{{ pesquisa }}”.
-                    {% else %}
-                        Relação de clientes registrados no sistema.
-                    {% endif %}
-                </p>
-
-            </div>
 
             <div class="panel-actions">
 
@@ -310,33 +159,204 @@ Consulte e gerencie os clientes cadastrados na oficina.
                             Visualizar
                         </button>
 
+                        <button
+                            type="button"
+                            class="button button-secondary button-small"
+                            id="acaoSituacaoCliente"
+                            disabled
+                        >
+                            Desativar
+                        </button>
+
                     {% endif %}
 
                 </div>
-
-                <span class="badge badge-neutral">
-                    {{ clientes|length }}
-
-                    {% if clientes|length == 1 %}
-                        registro
-                    {% else %}
-                        registros
-                    {% endif %}
-                </span>
 
             </div>
 
         </div>
 
+        <div class="panel-body p-3">
+
+            <form
+                method="get"
+                action="{{ url_for('cliente_web.listar') }}"
+                class="page-search"
+            >
+
+                {% if modo == "selecionar" %}
+
+                    <input
+                        type="hidden"
+                        name="modo"
+                        value="selecionar"
+                    >
+
+                    {% if ordem_id %}
+
+                        <input
+                            type="hidden"
+                            name="ordem_id"
+                            value="{{ ordem_id }}"
+                        >
+
+                    {% endif %}
+
+                {% endif %}
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="situacao"
+                        class="form-label"
+                    >
+                        Situação
+                    </label>
+
+                    <select
+                        id="situacao"
+                        name="situacao"
+                        class="form-select"
+                    >
+                        <option
+                            value="todas"
+                            {% if situacao == "todas" %}
+                                selected
+                            {% endif %}
+                        >
+                            Todas
+                        </option>
+
+                        <option
+                            value="ativo"
+                            {% if situacao == "ativo" %}
+                                selected
+                            {% endif %}
+                        >
+                            Ativos
+                        </option>
+
+                        <option
+                            value="desativado"
+                            {% if situacao == "desativado" %}
+                                selected
+                            {% endif %}
+                        >
+                            Desativados
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="page-search-field page-search-field-compact">
+
+                    <label
+                        for="tipo_pesquisa"
+                        class="form-label"
+                    >
+                        Pesquisar por
+                    </label>
+
+                    <select
+                        id="tipo_pesquisa"
+                        name="tipo_pesquisa"
+                        class="form-select"
+                        data-client-search-type
+                    >
+                        <option
+                            value="nome"
+                            {% if tipo_pesquisa == "nome" %}
+                                selected
+                            {% endif %}
+                        >
+                            Nome
+                        </option>
+
+                        <option
+                            value="cpf"
+                            {% if tipo_pesquisa == "cpf" %}
+                                selected
+                            {% endif %}
+                        >
+                            CPF
+                        </option>
+
+                        <option
+                            value="telefone"
+                            {% if tipo_pesquisa == "telefone" %}
+                                selected
+                            {% endif %}
+                        >
+                            Telefone
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="page-search-field">
+
+                    <label
+                        for="pesquisa"
+                        class="visually-hidden"
+                    >
+                        Termo
+                    </label>
+
+                    <input
+                        type="search"
+                        id="pesquisa"
+                        name="pesquisa"
+                        class="form-control"
+                        value="{{ pesquisa or '' }}"
+                        placeholder="Digite o termo para consulta"
+                        autocomplete="off"
+                        data-client-search-term
+                    >
+
+                </div>
+
+                <div class="page-search-actions">
+
+                    <button
+                        type="submit"
+                        class="button button-secondary button-small"
+                    >
+                        <span aria-hidden="true">
+                            &#128269;
+                        </span>
+
+                        Consultar
+                    </button>
+
+                    <a
+                        href="{{ url_for(
+                            'cliente_web.listar',
+                            modo=modo,
+                            ordem_id=ordem_id
+                        ) if modo == 'selecionar' else url_for(
+                            'cliente_web.listar'
+                        ) }}"
+                        class="button button-neutral button-small"
+                    >
+                        Limpar
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
         {% if clientes %}
 
-            <div class="table-container">
+            <div class="table-container rounded-0 border-0 shadow-none">
 
                 <table class="system-table">
 
                     <thead>
 
                         <tr>
+
                             <th class="column-select">
                                 <span class="visually-hidden">
                                     Selecionar
@@ -362,6 +382,7 @@ Consulte e gerencie os clientes cadastrados na oficina.
                             <th class="column-status">
                                 Situação
                             </th>
+
                         </tr>
 
                     </thead>
@@ -385,6 +406,10 @@ Consulte e gerencie os clientes cadastrados na oficina.
                                         ) }}"
                                         data-url-visualizar="{{ url_for(
                                             'cliente_web.detalhes',
+                                            cliente_id=cliente.id
+                                        ) }}"
+                                        data-url-situacao="{{ url_for(
+                                            'cliente_web.alterar_situacao',
                                             cliente_id=cliente.id
                                         ) }}"
                                         data-url-selecionar="{{ url_for(
@@ -432,7 +457,9 @@ Consulte e gerencie os clientes cadastrados na oficina.
                                         </span>
 
                                     {% else %}
+
                                         -
+
                                     {% endif %}
 
                                 </td>
@@ -456,7 +483,7 @@ Consulte e gerencie os clientes cadastrados na oficina.
                                     {% else %}
 
                                         <span class="badge badge-neutral">
-                                            Inativo
+                                            Desativado
                                         </span>
 
                                     {% endif %}
@@ -471,19 +498,6 @@ Consulte e gerencie os clientes cadastrados na oficina.
 
                 </table>
 
-                <div class="table-footer">
-
-                    <span class="table-footer-information">
-                        Mostrando {{ clientes|length }}
-                        {% if clientes|length == 1 %}
-                            registro
-                        {% else %}
-                            registros
-                        {% endif %}
-                    </span>
-
-                </div>
-
             </div>
 
         {% else %}
@@ -491,14 +505,219 @@ Consulte e gerencie os clientes cadastrados na oficina.
             <div class="empty-state">
 
                 <h3 class="empty-state-title">
-                    Nenhum cliente encontrado
+                    Nenhum resultado
                 </h3>
 
-                <p class="empty-state-description">
-                    Verifique os dados pesquisados ou cadastre um novo cliente.
-                </p>
+            </div>
+
+        {% endif %}
+
+        <div class="table-footer">
+
+            <div class="table-footer-navigation">
+
+                {% if total_paginas > 1 %}
+
+                    <nav
+                        class="table-pagination"
+                        aria-label="Paginação de clientes"
+                    >
+
+                        {% if pagina_atual > 1 %}
+
+                            <a
+                                href="{{ url_pagina(pagina_atual - 1) }}"
+                                class="pagination-link"
+                                aria-label="Página anterior"
+                                rel="prev"
+                            >
+                                ‹
+                            </a>
+
+                        {% else %}
+
+                            <span
+                                class="pagination-link is-disabled"
+                                aria-disabled="true"
+                                aria-label="Página anterior"
+                            >
+                                ‹
+                            </span>
+
+                        {% endif %}
+
+                        {% for numero_pagina in range(1, total_paginas + 1) %}
+
+                            {% if numero_pagina == pagina_atual %}
+
+                                <span
+                                    class="pagination-link is-active"
+                                    aria-current="page"
+                                >
+                                    {{ numero_pagina }}
+                                </span>
+
+                            {% else %}
+
+                                <a
+                                    href="{{ url_pagina(numero_pagina) }}"
+                                    class="pagination-link"
+                                >
+                                    {{ numero_pagina }}
+                                </a>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                        {% if pagina_atual < total_paginas %}
+
+                            <a
+                                href="{{ url_pagina(pagina_atual + 1) }}"
+                                class="pagination-link"
+                                aria-label="Próxima página"
+                                rel="next"
+                            >
+                                ›
+                            </a>
+
+                        {% else %}
+
+                            <span
+                                class="pagination-link is-disabled"
+                                aria-disabled="true"
+                                aria-label="Próxima página"
+                            >
+                                ›
+                            </span>
+
+                        {% endif %}
+
+                    </nav>
+
+                    <form
+                        method="get"
+                        action="{{ url_for('cliente_web.listar') }}"
+                        class="pagination-jump"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="situacao"
+                            value="{{ situacao }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="tipo_pesquisa"
+                            value="{{ tipo_pesquisa }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="pesquisa"
+                            value="{{ pesquisa }}"
+                        >
+
+                        {% if modo == "selecionar" %}
+
+                            <input
+                                type="hidden"
+                                name="modo"
+                                value="selecionar"
+                            >
+
+                            {% if ordem_id %}
+
+                                <input
+                                    type="hidden"
+                                    name="ordem_id"
+                                    value="{{ ordem_id }}"
+                                >
+
+                            {% endif %}
+
+                        {% endif %}
+
+                        <label for="pagina_clientes">
+                            Página
+                        </label>
+
+                        <input
+                            type="number"
+                            id="pagina_clientes"
+                            name="pagina"
+                            class="form-control pagination-input"
+                            value="{{ pagina_atual }}"
+                            min="1"
+                            max="{{ total_paginas }}"
+                            required
+                        >
+
+                        <span>
+                            de {{ total_paginas }}
+                        </span>
+
+                        <button
+                            type="submit"
+                            class="pagination-link"
+                        >
+                            Ir
+                        </button>
+
+                    </form>
+
+                {% endif %}
 
             </div>
+
+            <span class="table-footer-information">
+
+                {{ total_registros }}
+
+                {% if total_registros == 1 %}
+                    registro
+                {% else %}
+                    registros
+                {% endif %}
+
+            </span>
+
+        </div>
+
+        {% if modo != "selecionar" %}
+
+            <form
+                method="post"
+                id="formSituacaoCliente"
+                hidden
+            >
+
+                <input
+                    type="hidden"
+                    name="situacao"
+                    value="{{ situacao }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="tipo_pesquisa"
+                    value="{{ tipo_pesquisa }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="pesquisa"
+                    value="{{ pesquisa }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="pagina"
+                    value="{{ pagina_atual }}"
+                >
+
+            </form>
 
         {% endif %}
 
@@ -509,7 +728,9 @@ Consulte e gerencie os clientes cadastrados na oficina.
 {% endblock %}
 
 {% block scripts %}
+
 <script
     src="{{ url_for('static', filename='js/clientes.js') }}"
 ></script>
+
 {% endblock %}

@@ -9,6 +9,7 @@ from flask import (
 
 from app.models.ordem_servico import OrdemServico
 from app.services.cliente_service import ClienteService
+from app.utils.paginacao import paginar_resultados
 
 
 cliente_web_bp = Blueprint(
@@ -22,6 +23,12 @@ TIPOS_PESQUISA_CLIENTE = {
     "nome",
     "cpf",
     "telefone",
+}
+
+SITUACOES_CLIENTE = {
+    "todas",
+    "ativo",
+    "desativado",
 }
 
 
@@ -40,9 +47,7 @@ def obter_contexto_selecao_ordem():
     return "selecionar", ordem_id
 
 
-def somente_numeros(
-    valor: str,
-):
+def somente_numeros(valor: str):
     return "".join(
         caractere
         for caractere in (valor or "")
@@ -55,10 +60,6 @@ def filtrar_clientes(
     pesquisa: str,
     tipo_pesquisa: str,
 ):
-    """
-    Filtra clientes pelo campo selecionado.
-    """
-
     if not pesquisa:
         return clientes
 
@@ -106,19 +107,36 @@ def filtrar_clientes(
     ]
 
 
+def filtrar_situacao_clientes(
+    clientes: list,
+    situacao: str,
+):
+    if situacao == "ativo":
+        return [
+            cliente
+            for cliente in clientes
+            if cliente.ativo
+        ]
+
+    if situacao == "desativado":
+        return [
+            cliente
+            for cliente in clientes
+            if not cliente.ativo
+        ]
+
+    return clientes
+
+
 def buscar_ordens_cliente(
     cliente_id: int,
     pesquisa: str = "",
 ):
-    """
-    Retorna as ordens de serviço do cliente,
-    permitindo pesquisar pelos dados do veículo
-    ou pelo serviço realizado.
-    """
-
     consulta = (
         OrdemServico.query
-        .filter_by(cliente_id=cliente_id)
+        .filter_by(
+            cliente_id=cliente_id
+        )
         .order_by(
             OrdemServico.data_servico.desc(),
             OrdemServico.id.desc(),
@@ -154,20 +172,14 @@ def buscar_ordens_cliente(
         )
         or (
             ordem.tipo_oleo
-            and termo in ordem.tipo_oleo.lower()
+            and termo
+            in ordem.tipo_oleo.lower()
         )
     ]
 
 
 @cliente_web_bp.get("")
 def listar():
-    """
-    Exibe os clientes cadastrados.
-
-    Também permite utilizar a página no modo
-    de seleção de cliente para uma ordem.
-    """
-
     pesquisa = request.args.get(
         "pesquisa",
         "",
@@ -188,7 +200,22 @@ def listar():
     ):
         tipo_pesquisa = "nome"
 
-    clientes = ClienteService.listar_clientes()
+    situacao = request.args.get(
+        "situacao",
+        "todas",
+    ).strip().lower()
+
+    if situacao not in SITUACOES_CLIENTE:
+        situacao = "todas"
+
+    clientes = (
+        ClienteService.listar_clientes()
+    )
+
+    clientes = filtrar_situacao_clientes(
+        clientes,
+        situacao,
+    )
 
     clientes = filtrar_clientes(
         clientes,
@@ -196,13 +223,33 @@ def listar():
         tipo_pesquisa,
     )
 
+    pagina_solicitada = request.args.get(
+        "pagina",
+        1,
+        type=int,
+    )
+
+    (
+        clientes,
+        pagina_atual,
+        total_paginas,
+        total_registros,
+    ) = paginar_resultados(
+        clientes,
+        pagina_solicitada,
+    )
+
     return render_template(
         "clientes/lista.html",
         clientes=clientes,
         pesquisa=pesquisa,
         tipo_pesquisa=tipo_pesquisa,
+        situacao=situacao,
         modo=modo,
         ordem_id=ordem_id,
+        pagina_atual=pagina_atual,
+        total_paginas=total_paginas,
+        total_registros=total_registros,
     )
 
 
@@ -210,13 +257,10 @@ def listar():
     "/<int:cliente_id>/detalhes"
 )
 def detalhes(cliente_id: int):
-    """
-    Exibe os dados do cliente e seu histórico
-    completo de ordens de serviço.
-    """
-
-    cliente = ClienteService.buscar_por_id(
-        cliente_id
+    cliente = (
+        ClienteService.buscar_por_id(
+            cliente_id
+        )
     )
 
     if cliente is None:
@@ -226,7 +270,9 @@ def detalhes(cliente_id: int):
         )
 
         return redirect(
-            url_for("cliente_web.listar")
+            url_for(
+                "cliente_web.listar"
+            )
         )
 
     pesquisa = request.args.get(
@@ -243,7 +289,9 @@ def detalhes(cliente_id: int):
         cliente_id
     )
 
-    total_ordens = len(todas_ordens)
+    total_ordens = len(
+        todas_ordens
+    )
 
     ultima_ordem = (
         todas_ordens[0]
@@ -282,11 +330,6 @@ def detalhes(cliente_id: int):
     methods=["GET", "POST"],
 )
 def cadastrar():
-    """
-    Exibe o formulário e cadastra
-    um novo cliente.
-    """
-
     modo, ordem_id = (
         obter_contexto_selecao_ordem()
     )
@@ -337,8 +380,10 @@ def cadastrar():
             ),
         }
 
-        dados["telefone"] = somente_numeros(
-            dados["telefone"]
+        dados["telefone"] = (
+            somente_numeros(
+                dados["telefone"]
+            )
         )
 
         if not dados["nome"]:
@@ -397,7 +442,9 @@ def cadastrar():
             )
 
         return redirect(
-            url_for("cliente_web.listar")
+            url_for(
+                "cliente_web.listar"
+            )
         )
 
     return render_template(
@@ -412,13 +459,10 @@ def cadastrar():
     methods=["GET", "POST"],
 )
 def editar(cliente_id: int):
-    """
-    Exibe o formulário e atualiza
-    um cliente existente.
-    """
-
-    cliente = ClienteService.buscar_por_id(
-        cliente_id
+    cliente = (
+        ClienteService.buscar_por_id(
+            cliente_id
+        )
     )
 
     if cliente is None:
@@ -428,7 +472,9 @@ def editar(cliente_id: int):
         )
 
         return redirect(
-            url_for("cliente_web.listar")
+            url_for(
+                "cliente_web.listar"
+            )
         )
 
     if request.method == "POST":
@@ -472,8 +518,10 @@ def editar(cliente_id: int):
             ),
         }
 
-        dados["telefone"] = somente_numeros(
-            dados["telefone"]
+        dados["telefone"] = (
+            somente_numeros(
+                dados["telefone"]
+            )
         )
 
         if not dados["nome"]:
@@ -534,16 +582,101 @@ def editar(cliente_id: int):
 
 
 @cliente_web_bp.post(
+    "/<int:cliente_id>/situacao"
+)
+def alterar_situacao(cliente_id: int):
+    cliente = (
+        ClienteService.alternar_situacao_cliente(
+            cliente_id
+        )
+    )
+
+    if cliente is None:
+        flash(
+            "Cliente não encontrado.",
+            "danger",
+        )
+    elif cliente.ativo:
+        flash(
+            "Cliente ativado com sucesso.",
+            "success",
+        )
+    else:
+        flash(
+            "Cliente desativado com sucesso.",
+            "success",
+        )
+
+    parametros = {}
+
+    situacao = request.form.get(
+        "situacao",
+        "",
+    ).strip()
+
+    tipo_pesquisa = request.form.get(
+        "tipo_pesquisa",
+        "",
+    ).strip()
+
+    pesquisa = request.form.get(
+        "pesquisa",
+        "",
+    ).strip()
+
+    pagina = request.form.get(
+        "pagina",
+        type=int,
+    )
+
+    modo = request.form.get(
+        "modo",
+        "",
+    ).strip()
+
+    ordem_id = request.form.get(
+        "ordem_id",
+        type=int,
+    )
+
+    if situacao:
+        parametros["situacao"] = situacao
+
+    if tipo_pesquisa:
+        parametros[
+            "tipo_pesquisa"
+        ] = tipo_pesquisa
+
+    if pesquisa:
+        parametros["pesquisa"] = pesquisa
+
+    if pagina:
+        parametros["pagina"] = pagina
+
+    if modo == "selecionar":
+        parametros["modo"] = modo
+
+        if ordem_id:
+            parametros[
+                "ordem_id"
+            ] = ordem_id
+
+    return redirect(
+        url_for(
+            "cliente_web.listar",
+            **parametros,
+        )
+    )
+
+
+@cliente_web_bp.post(
     "/<int:cliente_id>/excluir"
 )
 def excluir(cliente_id: int):
-    """
-    Realiza a exclusão lógica
-    de um cliente.
-    """
-
-    resultado = ClienteService.excluir_cliente(
-        cliente_id
+    resultado = (
+        ClienteService.excluir_cliente(
+            cliente_id
+        )
     )
 
     if resultado is None:
@@ -558,5 +691,7 @@ def excluir(cliente_id: int):
         )
 
     return redirect(
-        url_for("cliente_web.listar")
+        url_for(
+            "cliente_web.listar"
+        )
     )

@@ -98,18 +98,18 @@ Painel operacional
         <div class="summary-card">
 
             <p class="summary-label">
-                Notificações disponíveis
+                Notificações pendentes
             </p>
 
             <h2 class="summary-value">
-                {{ resumo.notificacoes_disponiveis }}
+                {{ resumo.notificacoes_pendentes }}
             </h2>
 
             <a
                 href="{{ url_for('notificacao_web.listar') }}"
                 class="summary-link"
             >
-                Consultar notificações
+                Acompanhar fila
             </a>
 
         </div>

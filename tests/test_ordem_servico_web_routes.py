@@ -1,6 +1,7 @@
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from bs4 import BeautifulSoup
@@ -60,6 +61,36 @@ def ordem():
         proxima_troca_km=95000,
         proxima_troca_data=date(2027, 2, 10),
     )
+
+
+def criar_ordens_listagem(
+    quantidade,
+    prefixo_placa="ABC",
+    inicio=1,
+):
+    return [
+        SimpleNamespace(
+            id=numero,
+            cliente=SimpleNamespace(
+                nome=f"Cliente {numero:02d}",
+                telefone=f"479{numero:08d}",
+            ),
+            marca="Volkswagen",
+            modelo="Gol",
+            placa=f"{prefixo_placa}{numero:04d}",
+            ano=2020,
+            data_servico=date(2026, 8, 10),
+            quilometragem=80000 + numero,
+            descricao_servico="Troca de óleo",
+            tipo_oleo="5W30",
+            proxima_troca_km=90000 + numero,
+            proxima_troca_data=date(2027, 2, 10),
+        )
+        for numero in range(
+            inicio,
+            inicio + quantidade,
+        )
+    ]
 
 
 def test_filtrar_ordens_pelo_campo_selecionado():
@@ -362,6 +393,44 @@ def test_listagem_renderiza_acoes_compactas_e_selecao(
         id="pesquisa",
     )
 
+    formulario_pesquisa = tipo_pesquisa.find_parent(
+        "form",
+        class_="page-search",
+    )
+
+    label_filtro = formulario_pesquisa.find(
+        "label",
+        attrs={
+            "for": "tipo_pesquisa",
+        },
+    )
+
+    label_termo = formulario_pesquisa.find(
+        "label",
+        attrs={
+            "for": "pesquisa",
+        },
+    )
+
+    assert label_filtro.get_text(strip=True) == "Filtro"
+    assert label_termo.get_text(strip=True) == "Termo"
+    assert "visually-hidden" in label_termo.get(
+        "class",
+        [],
+    )
+    assert pagina.find(
+        "h2",
+        class_="panel-title",
+        string=lambda texto: (
+            texto
+            and texto.strip() == "Pesquisa"
+        ),
+    ) is None
+    assert (
+        "Consulte por cliente, telefone, placa, marca ou modelo."
+        not in pagina.get_text(" ", strip=True)
+    )
+
     assert [
         opcao["value"]
         for opcao in tipo_pesquisa.find_all("option")
@@ -392,7 +461,14 @@ def test_listagem_renderiza_acoes_compactas_e_selecao(
     )
 
     assert "Consultar" in consultar.get_text()
-    assert "button-primary" in consultar["class"]
+    assert "button-secondary" in consultar["class"]
+    assert "button-small" in consultar["class"]
+    assert consultar.find(
+        "span",
+        attrs={
+            "aria-hidden": "true",
+        },
+    ) is not None
 
     limpar = pagina.find(
         "a",
@@ -405,31 +481,32 @@ def test_listagem_renderiza_acoes_compactas_e_selecao(
     assert limpar["href"].endswith(
         "/painel/ordens"
     )
+    assert "button-neutral" in limpar["class"]
+    assert "button-small" in limpar["class"]
 
-    titulo_listagem = pagina.find(
+    painel = formulario_pesquisa.find_parent(
+        class_="panel",
+    )
+    cabecalho = painel.find(
+        class_="panel-header",
+    )
+
+    assert painel.find(
         "h2",
-        string=lambda texto: (
-            texto
-            and "Ordens cadastradas" in texto
-        ),
+        class_="panel-title",
+    ) is None
+    assert "Ordens cadastradas" not in painel.get_text(
+        " ",
+        strip=True,
     )
-
-    cabecalho = titulo_listagem.find_parent(
-        class_="panel-header"
-    )
-
     assert cabecalho.find(
         attrs={
             "role": "toolbar",
         },
     ) is not None
-    contador = cabecalho.find(
+    assert cabecalho.find(
         class_="badge-neutral",
-    )
-
-    assert " ".join(
-        contador.get_text().split()
-    ) == "1 registro"
+    ) is None
 
     incluir = cabecalho.find(
         "a",
@@ -471,6 +548,17 @@ def test_listagem_renderiza_acoes_compactas_e_selecao(
         "table",
         class_="system-table",
     )
+
+    assert formulario_pesquisa.find_parent(
+        class_="panel",
+    ) is tabela.find_parent(
+        class_="panel",
+    )
+    assert len(
+        pagina.select(
+            ".page-section > .panel"
+        )
+    ) == 1
 
     cabecalhos = [
         item.get_text(
@@ -532,6 +620,257 @@ def test_listagem_renderiza_acoes_compactas_e_selecao(
     )
 
     assert script_ordens is not None
+    assert " ".join(
+        pagina.find(
+            class_="table-footer-information",
+        ).get_text().split()
+    ) == "1 registro"
+
+
+@pytest.mark.parametrize(
+    "quantidade",
+    [0, 10],
+)
+def test_ordens_uma_pagina_oculta_controles_e_exibe_total(
+    client,
+    monkeypatch,
+    quantidade,
+):
+    ordens = criar_ordens_listagem(
+        quantidade,
+    )
+    monkeypatch.setattr(
+        OrdemServicoService,
+        "listar_ordens",
+        lambda: ordens,
+    )
+
+    resposta = client.get(
+        "/painel/ordens"
+    )
+
+    assert resposta.status_code == 200
+
+    pagina = BeautifulSoup(
+        resposta.data,
+        "html.parser",
+    )
+
+    assert len(
+        pagina.select(
+            "input[data-ordem-selection]"
+        )
+    ) == quantidade
+    assert pagina.find(
+        class_="table-pagination",
+    ) is None
+    assert pagina.find(
+        class_="pagination-jump",
+    ) is None
+    assert " ".join(
+        pagina.find(
+            class_="table-footer-information",
+        ).get_text().split()
+    ) == f"{quantidade} registros"
+
+    if quantidade == 0:
+        assert pagina.find(
+            class_="empty-state",
+        ) is not None
+    else:
+        assert pagina.find(
+            "table",
+            class_="system-table",
+        ) is not None
+
+
+def test_ordens_paginacao_filtra_preserva_parametros_e_navegacao(
+    client,
+    monkeypatch,
+):
+    ordens = (
+        criar_ordens_listagem(25)
+        + criar_ordens_listagem(
+            4,
+            prefixo_placa="XYZ",
+            inicio=101,
+        )
+    )
+    monkeypatch.setattr(
+        OrdemServicoService,
+        "listar_ordens",
+        lambda: ordens,
+    )
+
+    resposta = client.get(
+        "/painel/ordens",
+        query_string={
+            "tipo_pesquisa": "placa",
+            "pesquisa": "abc",
+            "pagina": 2,
+        },
+    )
+
+    assert resposta.status_code == 200
+
+    pagina = BeautifulSoup(
+        resposta.data,
+        "html.parser",
+    )
+    tabela = pagina.find(
+        "table",
+        class_="system-table",
+    )
+    selecoes = tabela.select(
+        "input[data-ordem-selection]"
+    )
+
+    assert len(selecoes) == 10
+    assert [
+        selecao.find_parent("tr").find_all("td")[1]
+        .get_text(strip=True)
+        for selecao in selecoes
+    ] == [
+        str(numero)
+        for numero in range(11, 21)
+    ]
+    assert "XYZ" not in tabela.get_text()
+
+    navegacao = pagina.find(
+        class_="table-pagination",
+    )
+    anterior = navegacao.find(
+        "a",
+        attrs={
+            "aria-label": "Página anterior",
+        },
+    )
+    proxima = navegacao.find(
+        "a",
+        attrs={
+            "aria-label": "Próxima página",
+        },
+    )
+
+    assert navegacao.find(
+        class_="is-active",
+    ).get_text(strip=True) == "2"
+    assert parse_qs(
+        urlparse(anterior["href"]).query
+    ) == {
+        "pagina": ["1"],
+        "tipo_pesquisa": ["placa"],
+        "pesquisa": ["abc"],
+    }
+    assert parse_qs(
+        urlparse(proxima["href"]).query
+    ) == {
+        "pagina": ["3"],
+        "tipo_pesquisa": ["placa"],
+        "pesquisa": ["abc"],
+    }
+    assert {
+        link.get_text(strip=True)
+        for link in navegacao.find_all(
+            "a",
+            class_="pagination-link",
+        )
+        if link.get_text(strip=True).isdigit()
+    } == {"1", "3"}
+
+    for link in navegacao.find_all("a"):
+        parametros = parse_qs(
+            urlparse(link["href"]).query
+        )
+
+        assert parametros["tipo_pesquisa"] == ["placa"]
+        assert parametros["pesquisa"] == ["abc"]
+
+    formulario_pagina = pagina.find(
+        "form",
+        class_="pagination-jump",
+    )
+    campo_pagina = formulario_pagina.find(
+        "input",
+        attrs={
+            "name": "pagina",
+        },
+    )
+
+    assert campo_pagina["type"] == "number"
+    assert campo_pagina["value"] == "2"
+    assert campo_pagina["min"] == "1"
+    assert campo_pagina["max"] == "3"
+    assert formulario_pagina.find(
+        "input",
+        attrs={
+            "name": "tipo_pesquisa",
+            "value": "placa",
+        },
+    ) is not None
+    assert formulario_pagina.find(
+        "input",
+        attrs={
+            "name": "pesquisa",
+            "value": "abc",
+        },
+    ) is not None
+    assert " ".join(
+        pagina.find(
+            class_="table-footer-information",
+        ).get_text().split()
+    ) == "25 registros"
+
+
+def test_ordens_paginacao_trata_paginas_invalidas(
+    client,
+    monkeypatch,
+):
+    ordens = criar_ordens_listagem(25)
+    monkeypatch.setattr(
+        OrdemServicoService,
+        "listar_ordens",
+        lambda: ordens,
+    )
+
+    casos = (
+        ("0", "1", 10),
+        ("-3", "1", 10),
+        ("texto", "1", 10),
+        ("999", "3", 5),
+    )
+
+    for pagina_solicitada, pagina_esperada, quantidade in casos:
+        resposta = client.get(
+            "/painel/ordens",
+            query_string={
+                "pagina": pagina_solicitada,
+            },
+        )
+
+        assert resposta.status_code == 200
+
+        pagina = BeautifulSoup(
+            resposta.data,
+            "html.parser",
+        )
+
+        assert pagina.find(
+            class_="table-pagination",
+        ).find(
+            class_="is-active",
+        ).get_text(strip=True) == pagina_esperada
+        assert pagina.find(
+            "input",
+            attrs={
+                "name": "pagina",
+            },
+        )["value"] == pagina_esperada
+        assert len(
+            pagina.select(
+                "input[data-ordem-selection]"
+            )
+        ) == quantidade
 
 
 def test_visualizacao_exibe_dados_sem_edicao(

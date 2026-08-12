@@ -1,6 +1,7 @@
 from datetime import date
 
 from app.models.cliente import Cliente
+from app.models.notificacao import Notificacao
 from app.models.ordem_servico import OrdemServico
 
 
@@ -39,26 +40,10 @@ class DashboardService:
             .count()
         )
 
-        notificacoes_disponiveis = (
-            OrdemServico.query
-            .join(
-                Cliente,
-                OrdemServico.cliente_id
-                == Cliente.id,
-            )
+        notificacoes_pendentes = (
+            Notificacao.query
             .filter(
-                Cliente.ativo.is_(True),
-                Cliente.recebe_notificacao.is_(True),
-                (
-                    OrdemServico.proxima_troca_km.isnot(
-                        None
-                    )
-                )
-                | (
-                    OrdemServico.proxima_troca_data.isnot(
-                        None
-                    )
-                ),
+                Notificacao.status == "PENDENTE"
             )
             .count()
         )
@@ -67,8 +52,8 @@ class DashboardService:
             "total_clientes": total_clientes,
             "total_ordens": total_ordens,
             "proximas_trocas": proximas_trocas,
-            "notificacoes_disponiveis": (
-                notificacoes_disponiveis
+            "notificacoes_pendentes": (
+                notificacoes_pendentes
             ),
         }
 

@@ -1,5 +1,8 @@
 from app.models.cliente import Cliente
+from app.models.notificacao import Notificacao
+from app.models.ordem_servico import OrdemServico
 from app.repositories.cliente_repository import ClienteRepository
+from app.services.notificacao_service import NotificacaoService
 
 
 class ClienteService:
@@ -257,7 +260,114 @@ class ClienteService:
         return cliente
 
     @staticmethod
-    def excluir_cliente(cliente_id: int):
+    def _cancelar_notificacoes(
+        cliente_id: int,
+    ):
+        notificacoes = (
+            Notificacao.query
+            .filter(
+                Notificacao.cliente_id == cliente_id,
+                Notificacao.status.in_(
+                    [
+                        "PENDENTE",
+                        "FALHA",
+                    ]
+                ),
+            )
+            .all()
+        )
+
+        for notificacao in notificacoes:
+            notificacao.status = "CANCELADO"
+            notificacao.erro = None
+
+    @staticmethod
+    def _reativar_notificacoes(
+        cliente: Cliente,
+    ):
+        if not cliente.recebe_notificacao:
+            return
+
+        hoje = NotificacaoService.data_atual()
+
+        ordens_cliente = (
+            OrdemServico.query
+            .filter(
+                OrdemServico.cliente_id
+                == cliente.id
+            )
+            .all()
+        )
+
+        placas = {
+            ordem.placa.strip().upper()
+            for ordem in ordens_cliente
+            if ordem.placa
+        }
+
+        for placa in placas:
+            ultima_ordem = (
+                OrdemServico.query
+                .filter(
+                    OrdemServico.placa
+                    == placa
+                )
+                .order_by(
+                    OrdemServico.data_servico.desc(),
+                    OrdemServico.id.desc(),
+                )
+                .first()
+            )
+
+            if ultima_ordem is None:
+                continue
+
+            if (
+                ultima_ordem.cliente_id
+                != cliente.id
+            ):
+                continue
+
+            if (
+                ultima_ordem.proxima_troca_data
+                is None
+            ):
+                continue
+
+            if (
+                ultima_ordem.proxima_troca_data
+                < hoje
+            ):
+                continue
+
+            notificacao = (
+                NotificacaoService
+                .garantir_notificacao(
+                    ultima_ordem
+                )
+            )
+
+            if notificacao is None:
+                continue
+
+            if notificacao.status == "ENVIADO":
+                continue
+
+            NotificacaoService \
+                .atualizar_dados_notificacao(
+                    notificacao,
+                    ultima_ordem,
+                )
+
+            notificacao.status = "PENDENTE"
+            notificacao.tentativas = 0
+            notificacao.data_envio = None
+            notificacao.erro = None
+
+    @staticmethod
+    def alternar_situacao_cliente(
+        cliente_id: int,
+    ):
         cliente = ClienteRepository.buscar_por_id(
             cliente_id
         )
@@ -265,8 +375,38 @@ class ClienteService:
         if cliente is None:
             return None
 
-        ClienteRepository.excluir(
-            cliente
+        cliente.ativo = not cliente.ativo
+
+        if cliente.ativo:
+            ClienteService._reativar_notificacoes(
+                cliente
+            )
+        else:
+            ClienteService._cancelar_notificacoes(
+                cliente.id
+            )
+
+        ClienteRepository.atualizar()
+
+        return cliente
+
+    @staticmethod
+    def excluir_cliente(
+        cliente_id: int,
+    ):
+        cliente = ClienteRepository.buscar_por_id(
+            cliente_id
         )
+
+        if cliente is None:
+            return None
+
+        cliente.ativo = False
+
+        ClienteService._cancelar_notificacoes(
+            cliente.id
+        )
+
+        ClienteRepository.atualizar()
 
         return True
