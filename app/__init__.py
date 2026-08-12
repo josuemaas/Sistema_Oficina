@@ -9,7 +9,6 @@ from app.routes import (
     cliente_web_bp,
     dashboard_web_bp,
     notificacao_web_bp,
-    ordem_servico_bp,
     ordem_servico_web_bp,
 )
 from config import Config
@@ -27,7 +26,6 @@ def create_app() -> Flask:
     migrate.init_app(app, db)
 
     app.register_blueprint(cliente_bp)
-    app.register_blueprint(ordem_servico_bp)
 
     app.register_blueprint(dashboard_web_bp)
     app.register_blueprint(cliente_web_bp)
@@ -44,7 +42,7 @@ def create_app() -> Flask:
                 "resultado_teste": resultado,
                 "status": "online",
             }
-        except Exception as erro:
+        except Exception:
             logger.exception("Falha ao conectar ao banco")
 
             return {

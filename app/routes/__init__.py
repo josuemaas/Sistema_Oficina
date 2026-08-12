@@ -1,6 +1,4 @@
 from .cliente_routes import cliente_bp
-from .ordem_servico_routes import ordem_servico_bp
-
 from .dashboard_web_routes import dashboard_web_bp
 from .cliente_web_routes import cliente_web_bp
 from .ordem_servico_web_routes import ordem_servico_web_bp
