@@ -2,10 +2,13 @@
 __pycache__
 *.pyc
 .pytest_cache
+.vscode
 .git
 .gitignore
 .env
 .env.*
+tests
 evolution
 migrations/__pycache__
-tests/__pycache__
+*.log
+app.db
