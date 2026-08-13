@@ -12,3 +12,4 @@ evolution
 migrations/__pycache__
 *.log
 app.db
+AGENTS.md
