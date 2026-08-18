@@ -17,17 +17,6 @@ services:
     networks:
       - evolution-network
 
-  evolution-manager:
-    container_name: oficina_evolution_manager
-    image: evoapicloud/evolution-manager:latest
-    restart: unless-stopped
-    depends_on:
-      - evolution-api
-    ports:
-      - "3000:80"
-    networks:
-      - evolution-network
-
   evolution-postgres:
     container_name: oficina_evolution_postgres
     image: postgres:15
